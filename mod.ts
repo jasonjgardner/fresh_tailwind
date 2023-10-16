@@ -12,6 +12,7 @@ import type {
 import postcss from "postcss/mod.js";
 import autoprefixer from "autoprefixer";
 import tailwind from "tailwindcss";
+import { getConfig } from "./_tailwind.ts";
 
 /**
  * Fresh Tailwind plugin settings.
@@ -49,6 +50,11 @@ export interface TailwindOptions {
    * Useful during development.
    */
   hookRender?: boolean;
+
+  /**
+   * The Tailwind configuration file path.
+   */
+  configFile?: string;
 }
 
 /**
@@ -62,20 +68,19 @@ export const STYLE_ELEMENT_ID = "__FRSH_TAILWIND";
  * @returns PostCSS result
  */
 export async function processTailwind(
-  { plugins = [], postcssOptions, tailwindContent, css }: TailwindOptions,
+  { plugins = [], postcssOptions, css, tailwindContent, configFile }:
+    TailwindOptions,
 ): Promise<Result> {
+  const config = await getConfig(configFile);
+
   const postcssPlugins: AcceptedPlugin[] = [
     // TODO: Pass build target to autoprefixer
     autoprefixer(),
 
     // @ts-ignore - Tailwind types not setup
     tailwind({
-      // TODO: Provide config settings from tailwind.config.ts
-      content: tailwindContent ?? [
-        "./routes/**/*.{tsx,jsx,ts,js}",
-        "./islands/**/*.{tsx,jsx,ts,js}",
-        "./components/**/*.{tsx,jsx,ts,js}",
-      ],
+      ...config,
+      content: tailwindContent ?? config.content,
     }),
     ...plugins,
   ];
