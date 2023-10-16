@@ -52,6 +52,7 @@ Deno.test("Test PostCSS/Tailwind with build step", async function buildTailwindT
     hookRender: false,
     staticDir: "./test",
     dest: "./test/style.css",
+    configFile: "./test/tailwind.config.ts",
   });
 
   assertNotEquals(plugin, undefined);
