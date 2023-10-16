@@ -1,4 +1,9 @@
-import type { Plugin } from "$fresh/server.ts";
+import type {
+  Plugin,
+  PluginAsyncRenderContext,
+  PluginRenderResult,
+} from "$fresh/server.ts";
+import { asset } from "$fresh/runtime.ts";
 import type {
   AcceptedPlugin,
   ProcessOptions,
@@ -39,6 +44,11 @@ export interface TailwindOptions {
    * Defaults to `./static`.
    */
   staticDir?: string;
+  /**
+   * Whether to hook into the render process.
+   * Useful during development.
+   */
+  hookRender?: boolean;
 }
 
 /**
@@ -92,33 +102,72 @@ export async function processTailwind(
 }
 
 /**
+ * Process Tailwind CSS and return its styles for Fresh.
+ * @param options - {@link TailwindOptions}
+ * @returns Plugin render result with injected Tailwind styles
+ */
+async function renderTailwind(
+  options: TailwindOptions,
+): Promise<PluginRenderResult> {
+  const { css } = await processTailwind(options);
+  const staticDir = options.staticDir ?? "./static";
+  const styles = [{
+    id: STYLE_ELEMENT_ID,
+    cssText: options.dest
+      ? `@import url(${
+        asset(options.dest.replace(
+          staticDir, // Make asset URL relative to static dir
+          "",
+        ))
+      })`
+      : css,
+  }];
+
+  try {
+    if (options.dest && options.dest.includes(staticDir)) {
+      await Deno.writeTextFile(options.dest, css);
+    }
+  } catch (err) {
+    console.warn("Failed to write Tailwind CSS to file.\n%s", err);
+    styles[0].cssText = css;
+  }
+
+  // TODO: Allow injecting fonts
+
+  return {
+    styles,
+  };
+}
+
+/**
  * Fresh plugin which processes Tailwind CSS.
  * @param options - {@link TailwindOptions}
  * @returns Fresh Tailwind plugin
  */
 export default function tailwindPlugin(
   options: TailwindOptions = {},
-): Plugin {
-  return {
+) {
+  const plugin: Plugin = {
     name: "tailwind_plugin",
-    async renderAsync(ctx) {
+    buildStart: async () => {
+      const { css } = await processTailwind(options);
+      const dest = options.dest ?? "./static/style.css";
+      await Deno.writeTextFile(dest, css);
+    },
+  };
+
+  // Send current HTML to Tailwind for processing
+  if (options.hookRender) {
+    plugin.renderAsync = async (ctx: PluginAsyncRenderContext) => {
       const res = await ctx.renderAsync();
       options.tailwindContent = [{
         raw: res.htmlText,
         extension: ".html",
       }, ...(options.tailwindContent ?? [])];
 
-      const { css } = await processTailwind(options);
-      const styles = [{
-        id: STYLE_ELEMENT_ID,
-        cssText: css,
-      }];
+      return renderTailwind(options);
+    };
+  }
 
-      // TODO: Allow injecting fonts
-
-      return {
-        styles,
-      };
-    },
-  };
+  return plugin;
 }
