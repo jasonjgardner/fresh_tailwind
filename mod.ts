@@ -110,17 +110,27 @@ async function renderTailwind(
   options: TailwindOptions,
 ): Promise<PluginRenderResult> {
   const { css } = await processTailwind(options);
+  const staticDir = options.staticDir ?? "./static";
   const styles = [{
     id: STYLE_ELEMENT_ID,
     cssText: options.dest
       ? `@import url(${
         asset(options.dest.replace(
-          options.staticDir ?? "./static", // Make asset URL relative to static dir
+          staticDir, // Make asset URL relative to static dir
           "",
         ))
       })`
       : css,
   }];
+
+  try {
+    if (options.dest && options.dest.includes(staticDir)) {
+      await Deno.writeTextFile(options.dest, css);
+    }
+  } catch (err) {
+    console.warn("Failed to write Tailwind CSS to file.\n%s", err);
+    styles[0].cssText = css;
+  }
 
   // TODO: Allow injecting fonts
 
