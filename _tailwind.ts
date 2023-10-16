@@ -27,7 +27,7 @@ export async function getConfig(
       ...config,
     };
   } catch (err) {
-    if (!(err instanceof Deno.errors.NotFound)) {
+    if (!(err instanceof Deno.errors.NotFound) && !(err instanceof TypeError)) {
       throw err;
     }
     console.warn(
