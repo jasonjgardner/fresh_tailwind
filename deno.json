@@ -5,9 +5,5 @@
     "$fresh/": "https://deno.land/x/fresh@1.5.2/",
     "preact": "https://esm.sh/preact@10.18.1",
     "preact/": "https://esm.sh/preact@10.18.1/",
-    "postcss/": "https://deno.land/x/postcss@8.4.16/",
-    "postcss-js": "https://esm.sh/postcss-js@4.0.1",
-    "autoprefixer": "https://esm.sh/autoprefixer",
-    "tailwindcss": "npm:tailwindcss@3.3.3"
   }
 }
