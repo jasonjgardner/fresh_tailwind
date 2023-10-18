@@ -149,8 +149,31 @@ export default {
   },
   "files.associations": {
     "*.css": "tailwindcss"
+  },
+  "[tailwindcss]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
   }
 }
+```
+# Heroicons
+
+Extend your import map, or `deno.json` imports property, with the following items:
+```json
+{
+    "react": "https://esm.sh/preact@10.18.1/compat",
+    "react/": "https://esm.sh/preact@10.18.1/preact/compat/",
+    "react-dom": "https://esm.sh/preact@10.18.1/compat",
+    "@heroicons/24/outline/": "https://unpkg.com/@heroicons/react@2.0.18/24/outline/esm/",
+    "@heroicons/24/solid/": "https://unpkg.com/@heroicons/react@2.0.18/24/solid/esm/",
+    "@heroicons/20/solid/": "https://unpkg.com/@heroicons/react@2.0.18/20/solid/esm/"
+}
+```
+
+## Usage
+```jsx
+import BeakerIcon from "@heroicons/24/solid/BeakerIcon.js";
+
+<BeakerIcon />
 ```
 
 ## License
