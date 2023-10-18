@@ -1,4 +1,4 @@
-import { toFileUrl } from "$std/path/to_file_url.ts";
+import { toFileUrl } from "https://deno.land/std@0.204.0/path/to_file_url.ts";
 /**
  * Load Tailwind configuration from a file.
  * @param configFile __Absolute__ path to the Tailwind config file.
