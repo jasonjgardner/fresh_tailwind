@@ -4,14 +4,8 @@ import type {
   PluginRenderResult,
 } from "$fresh/server.ts";
 import { asset } from "$fresh/runtime.ts";
-import type {
-  AcceptedPlugin,
-  ProcessOptions,
-  Result,
-} from "postcss/lib/postcss.js";
-import postcss from "postcss/mod.js";
-import autoprefixer from "autoprefixer";
-import tailwind from "tailwindcss";
+import type { AcceptedPlugin, ProcessOptions, Result } from "./deps.ts";
+import { autoprefixer, postcss, tailwindcss as tailwind } from "./deps.ts";
 import { getConfig } from "./_tailwind.ts";
 
 /**
