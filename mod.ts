@@ -76,6 +76,8 @@ async function renderTailwind(
 
   const { css } = await processTailwind(options);
   const staticDir = options.staticDir ?? "./static";
+
+  // Prepare style output
   const styles = [{
     id: STYLE_ELEMENT_ID,
     cssText: options.dest
@@ -89,15 +91,15 @@ async function renderTailwind(
   }];
 
   try {
+    // Attempt to write styles to file when a destination is provided
     if (options.dest && options.dest.includes(staticDir)) {
       await Deno.writeTextFile(options.dest, css);
     }
   } catch (err) {
     console.warn("Failed to write Tailwind CSS to file.\n%s", err);
+    // Fallback to injecting styles into HTML
     styles[0].cssText = css;
   }
-
-  // TODO: Allow injecting fonts
 
   return {
     styles,
@@ -114,6 +116,12 @@ export default function tailwindPlugin(
     hookRender: false,
   },
 ) {
+  /**
+   * Compile Tailwind CSS and write to file,
+   * ensuring the output directory exists.
+   * @param opts {@link TailwindOptions}
+   * @param conf Fresh configuration
+   */
   const buildProcess = async (
     opts?: TailwindOptions,
     conf?: ResolvedFreshConfig,
@@ -129,13 +137,42 @@ export default function tailwindPlugin(
 
   const plugin: TailwindPlugin = {
     name: "tailwind_plugin",
+    /**
+     * Output Tailwind CSS to file on Fresh build command.
+     * @param config Fresh configuration
+     */
     buildStart: async (config) => {
       await buildProcess(options, config);
     },
-    build: async (opts?: TailwindOptions) => {
+    /**
+     * Exposes Tailwind build process as a plugin method.
+     * @param opts {@link TailwindOptions}
+     * @example
+     * ```ts
+     * import tailwindPlugin from "fresh_tailwind/mod.ts";
+     * const tailwind = tailwindPlugin();
+     * await tailwind.build();
+     * ```
+     */
+    async build(opts?: TailwindOptions) {
       await buildProcess(opts ?? options);
     },
-    install: async () => {
+    /**
+     * Initialize Tailwind standalone CLI download.
+     * Use in development and run only as needed.
+     * @returns Installation plugin
+     * @example
+     * ```ts
+     * import { defineConfig } from "$fresh/server.ts";
+     * import tailwindPlugin from "fresh_tailwind/mod.ts";
+     *
+     * // Run once to install Tailwind CLI in your development environment.
+     * export default defineConfig({
+     *  plugins: [ await tailwindPlugin.install() ],
+     * });
+     * ```
+     */
+    async install() {
       await init();
       return {
         ...plugin,
@@ -146,7 +183,14 @@ export default function tailwindPlugin(
 
   // Send current HTML to Tailwind for processing
   if (options.hookRender) {
-    plugin.renderAsync = async (ctx: PluginAsyncRenderContext) => {
+    /**
+     * Render Tailwind based on current HTML and configuration content.
+     * @param ctx Render context
+     * @returns Tailwind styles for use in render function
+     */
+    plugin.renderAsync = async function renderTailwindStyles(
+      ctx: PluginAsyncRenderContext,
+    ) {
       const res = await ctx.renderAsync();
 
       if (!res.requiresHydration) {
