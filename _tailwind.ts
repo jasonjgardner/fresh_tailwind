@@ -1,4 +1,4 @@
-import { toFileUrl } from "https://deno.land/std@0.204.0/path/to_file_url.ts";
+import { join, toFileUrl } from "./deps.ts";
 
 export async function tryImportConfig(
   configFile?: string,

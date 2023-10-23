@@ -10,6 +10,6 @@ export { type Config, default as tailwindcss } from "npm:tailwindcss@3.3.3";
 export type { AcceptedPlugin, ProcessOptions, Result };
 
 export { postcss };
-
-export { basename, join } from "$std/path/mod.ts";
-export { ensureDir } from "$std/fs/mod.ts";
+export { toFileUrl } from "https://deno.land/std@0.204.0/path/to_file_url.ts";
+export { basename, join } from "https://deno.land/std@0.204.0/path/mod.ts";
+export { ensureDir } from "https://deno.land/std@0.204.0/fs/mod.ts";
