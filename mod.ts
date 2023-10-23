@@ -3,12 +3,17 @@ import type {
   PluginRenderResult,
 } from "$fresh/server.ts";
 import { asset, IS_BROWSER } from "$fresh/runtime.ts";
-import type { AcceptedPlugin, Result } from "./deps.ts";
-import { autoprefixer, postcss, tailwindcss as tailwind } from "./deps.ts";
+import {
+  type AcceptedPlugin,
+  autoprefixer,
+  ensureDir,
+  postcss,
+  type Result,
+  tailwindcss as tailwind,
+} from "./deps.ts";
 import { getConfig } from "./_tailwind.ts";
 import init from "./cli.ts";
 import { ResolvedFreshConfig } from "$fresh/src/server/types.ts";
-import { ensureDir } from "$std/fs/ensure_dir.ts";
 import type { TailwindOptions, TailwindPlugin } from "./types.ts";
 
 /**
@@ -97,7 +102,7 @@ async function renderTailwind(
     }
   } catch (err) {
     console.warn("Failed to write Tailwind CSS to file.\n%s", err);
-    // Fallback to injecting styles into HTML
+    // Fallback to including styles in HTML
     styles[0].cssText = css;
   }
 
