@@ -192,16 +192,30 @@ async function download(root?: string, dest = "./bin"): Promise<string> {
   return executable;
 }
 
+async function readDenoJson(denoJsonPath: string) {
+  try {
+    const denoJson = JSON.parse(await Deno.readTextFile(denoJsonPath));
+    return denoJson;
+  } catch (err) {
+    if (err instanceof Deno.errors.NotFound) {
+      throw new Error(
+        "Could not find deno.json in the specified working directory.",
+      );
+    }
+
+    throw err;
+  }
+}
+
 /**
  * Add Tailwind CLI commands to Deno tasks.
  * @param cwd - Current working directory for Deno project.
  */
 export async function addTask(cwd?: string) {
-  // Add task to deno.json
   const denoJsonPath = join(cwd ?? "./", "deno.json");
+  // Add task to deno.json
   try {
-    const denoJson = JSON.parse(await Deno.readTextFile(denoJsonPath));
-    denoJson.tasks = denoJson.tasks ?? {};
+    const denoJson = await readDenoJson(denoJsonPath);
 
     denoJson.tasks.tailwind = "./bin/tailwindcss";
 
@@ -224,6 +238,27 @@ export async function addTask(cwd?: string) {
 }
 
 export default async function init(root?: string, updateTasks = true) {
+  // Check if deno.json has a tasks.tailwind property before attempting to download.
+  // If it does, skip downloading.
+
+  const denoJsonPath = join(root ?? "./", "deno.json");
+  try {
+    const denoJson = await readDenoJson(denoJsonPath);
+
+    if (denoJson.tasks.tailwind) {
+      console.log(
+        "Tailwind CLI commands have already been added to your Deno tasks. Run %cdeno task tailwind%c... for Tailwind CLI commands.",
+        "color:teal;",
+        "",
+      );
+      return denoJson.tasks.tailwind;
+    }
+  } catch (err) {
+    if (!(err instanceof Deno.errors.NotFound) && !(err instanceof TypeError)) {
+      throw err;
+    }
+  }
+
   const executable = await download(root);
 
   if (updateTasks) {

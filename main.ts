@@ -9,5 +9,5 @@ const tailwind = tailwindPlugin({
 });
 
 if (import.meta.main) {
-  await tailwind.buildStart!();
+  await tailwind.build();
 }
