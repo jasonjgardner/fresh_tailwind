@@ -1,58 +1,15 @@
 import type {
-  Plugin,
   PluginAsyncRenderContext,
   PluginRenderResult,
 } from "$fresh/server.ts";
 import { asset, IS_BROWSER } from "$fresh/runtime.ts";
-import type { AcceptedPlugin, ProcessOptions, Result } from "./deps.ts";
+import type { AcceptedPlugin, Result } from "./deps.ts";
 import { autoprefixer, postcss, tailwindcss as tailwind } from "./deps.ts";
 import { getConfig } from "./_tailwind.ts";
 import init from "./cli.ts";
 import { ResolvedFreshConfig } from "$fresh/src/server/types.ts";
 import { ensureDir } from "$std/fs/ensure_dir.ts";
-
-/**
- * Fresh Tailwind plugin settings.
- */
-export interface TailwindOptions {
-  css?: string;
-  /**
-   * List of PostCSS plugins to use.
-   * (Already includes Tailwind and Autoprefixer.)
-   */
-  plugins?: AcceptedPlugin[];
-  /**
-   * Options to pass onto PostCSS.
-   * Include `from` and `to` options to enable source maps.
-   */
-  postcssOptions?: ProcessOptions;
-  /**
-   * List of paths to files that should be scanned for classes.
-   * Defaults to check routes, islands and components.
-   */
-  tailwindContent?: Array<string | { raw: string; extension: string }>;
-  // TODO: Get from Fresh
-  /**
-   * The destination of the generated CSS file.
-   * Should include file name. Defaults to `./static/style.css`.
-   */
-  dest?: string;
-  /**
-   * The Fresh static content directory path.
-   * Defaults to `./static`.
-   */
-  staticDir?: string;
-  /**
-   * Whether to hook into the render process.
-   * Useful during development.
-   */
-  hookRender?: boolean;
-
-  /**
-   * The Tailwind configuration file path.
-   */
-  configFile?: string;
-}
+import type { TailwindOptions, TailwindPlugin } from "./types.ts";
 
 /**
  * The ID of the style element that is injected into the HTML.
@@ -170,17 +127,20 @@ export default function tailwindPlugin(
     await Deno.writeTextFile(dest, css);
   };
 
-  const plugin: Plugin & {
-    init: () => Promise<void>;
-    build: () => Promise<void>;
-  } = {
+  const plugin: TailwindPlugin = {
     name: "tailwind_plugin",
     buildStart: async (config) => {
       await buildProcess(options, config);
     },
-    init,
     build: async (opts?: TailwindOptions) => {
       await buildProcess(opts ?? options);
+    },
+    install: async () => {
+      await init();
+      return {
+        ...plugin,
+        name: "tailwind_installation",
+      };
     },
   };
 
