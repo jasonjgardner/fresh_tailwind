@@ -3,10 +3,12 @@ import type {
   PluginAsyncRenderContext,
   PluginRenderResult,
 } from "$fresh/server.ts";
-import { asset } from "$fresh/runtime.ts";
+import { asset, IS_BROWSER } from "$fresh/runtime.ts";
 import type { AcceptedPlugin, ProcessOptions, Result } from "./deps.ts";
 import { autoprefixer, postcss, tailwindcss as tailwind } from "./deps.ts";
 import { getConfig } from "./_tailwind.ts";
+import init from "./cli.ts";
+import { ResolvedFreshConfig } from "$fresh/src/server/types.ts";
 
 /**
  * Fresh Tailwind plugin settings.
@@ -108,6 +110,12 @@ export async function processTailwind(
 async function renderTailwind(
   options: TailwindOptions,
 ): Promise<PluginRenderResult> {
+  if (IS_BROWSER) {
+    return {
+      styles: [],
+    };
+  }
+
   const { css } = await processTailwind(options);
   const staticDir = options.staticDir ?? "./static";
   const styles = [{
@@ -144,14 +152,33 @@ async function renderTailwind(
  * @returns Fresh Tailwind plugin
  */
 export default function tailwindPlugin(
-  options: TailwindOptions = {},
+  options: TailwindOptions = {
+    hookRender: false,
+  },
 ) {
-  const plugin: Plugin = {
+  const buildProcess = async (
+    opts?: TailwindOptions,
+    conf?: ResolvedFreshConfig,
+  ) => {
+    const { css } = await processTailwind({
+      dest: `${conf?.build?.outDir ?? conf?.staticDir ?? "./dist"}/style.css`,
+      ...opts,
+    });
+    const dest = opts?.dest ?? "./static/style.css";
+    await Deno.writeTextFile(dest, css);
+  };
+
+  const plugin: Plugin & {
+    init: () => Promise<void>;
+    build: () => Promise<void>;
+  } = {
     name: "tailwind_plugin",
-    buildStart: async () => {
-      const { css } = await processTailwind(options);
-      const dest = options.dest ?? "./static/style.css";
-      await Deno.writeTextFile(dest, css);
+    buildStart: async (config) => {
+      await buildProcess(options, config);
+    },
+    init,
+    build: async (opts?: TailwindOptions) => {
+      await buildProcess(opts ?? options);
     },
   };
 
@@ -159,6 +186,13 @@ export default function tailwindPlugin(
   if (options.hookRender) {
     plugin.renderAsync = async (ctx: PluginAsyncRenderContext) => {
       const res = await ctx.renderAsync();
+
+      if (!res.requiresHydration) {
+        return {
+          styles: [],
+        };
+      }
+
       options.tailwindContent = [{
         raw: res.htmlText,
         extension: ".html",
