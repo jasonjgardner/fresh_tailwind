@@ -9,6 +9,7 @@ import { autoprefixer, postcss, tailwindcss as tailwind } from "./deps.ts";
 import { getConfig } from "./_tailwind.ts";
 import init from "./cli.ts";
 import { ResolvedFreshConfig } from "$fresh/src/server/types.ts";
+import { ensureDir } from "$std/fs/ensure_dir.ts";
 
 /**
  * Fresh Tailwind plugin settings.
@@ -165,6 +166,7 @@ export default function tailwindPlugin(
       ...opts,
     });
     const dest = opts?.dest ?? "./static/style.css";
+    await ensureDir(dest.split("/").slice(0, -1).join("/"));
     await Deno.writeTextFile(dest, css);
   };
 
