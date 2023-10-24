@@ -219,6 +219,16 @@ export async function addTask(cwd?: string) {
 
     denoJson.tasks.tailwind = "./bin/tailwindcss";
 
+    if (!denoJson.tasks["tailwind:build"]) {
+      denoJson.tasks["tailwind:build"] =
+        "./bin/tailwindcss -i ./src/style.css -o ./static/style.css --config ./tailwind.config.ts --minify";
+    }
+
+    if (!denoJson.tasks["tailwind:watch"]) {
+      denoJson.tasks["tailwind:watch"] =
+        "./bin/tailwindcss -i ./src/style.css -o ./static/style.css --config ./tailwind.config.ts --watch";
+    }
+
     await Deno.writeTextFile(denoJsonPath, JSON.stringify(denoJson, null, 2));
   } catch (err) {
     if (err instanceof Deno.errors.NotFound) {
