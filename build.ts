@@ -13,7 +13,7 @@ export interface TailwindPluginOptions {
 export default function tailwindBuildPlugin(options?: TailwindPluginOptions) {
   const fileName = options?.dest ?? "style.css";
   const plugin: Plugin = {
-    name: "tailwind_plugin",
+    name: "tailwind_build_plugin",
     buildStart: async (config) => {
       const tailwindBin =
         JSON.parse(await Deno.readTextFile(join(Deno.cwd(), "deno.json")))
@@ -23,7 +23,7 @@ export default function tailwindBuildPlugin(options?: TailwindPluginOptions) {
       const tailwindCmd = new Deno.Command(tailwindBin, {
         args: [
           "-o",
-          `${config?.build?.outDir ?? config.staticDir}/${fileName}`,
+          `${config.staticDir}/${fileName}`,
           "--config",
           `${Deno.cwd()}/tailwind.config.ts`,
           !config.dev ? "--minify" : "",
