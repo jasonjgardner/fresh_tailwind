@@ -219,6 +219,16 @@ export async function addTask(cwd?: string) {
 
     denoJson.tasks.tailwind = "./bin/tailwindcss";
 
+    if (!denoJson.tasks["tailwind:build"]) {
+      denoJson.tasks["tailwind:build"] =
+        "./bin/tailwindcss -i ./src/style.css -o ./static/style.css --config ./tailwind.config.ts --minify";
+    }
+
+    if (!denoJson.tasks["tailwind:watch"]) {
+      denoJson.tasks["tailwind:watch"] =
+        "./bin/tailwindcss -i ./src/style.css -o ./static/style.css --config ./tailwind.config.ts --watch";
+    }
+
     await Deno.writeTextFile(denoJsonPath, JSON.stringify(denoJson, null, 2));
   } catch (err) {
     if (err instanceof Deno.errors.NotFound) {
@@ -237,10 +247,48 @@ export async function addTask(cwd?: string) {
   );
 }
 
+export async function writeTailwindConfig() {
+  try {
+    await Deno.readTextFile("./tailwind.config.ts");
+    return;
+  } catch (err) {
+    if (!(err instanceof Deno.errors.NotFound) && !(err instanceof TypeError)) {
+      throw err;
+    }
+  }
+
+  const content = `export default {
+  content: [
+    "./routes/**/*.{ts,tsx}",
+    "./islands/**/*.tsx",
+    "./components/**/*.tsx",
+  ],
+};`;
+
+  await Deno.writeTextFile("./tailwind.config.ts", content);
+
+  try {
+    await Deno.readTextFile("./src/styles.css");
+    return;
+  } catch (err) {
+    if (!(err instanceof Deno.errors.NotFound) && !(err instanceof TypeError)) {
+      throw err;
+    }
+  }
+
+  const styles = `@tailwind base;
+  @tailwind components;
+  @tailwind utilities;`;
+
+  await ensureDir("./src");
+  await Deno.writeTextFile("./src/styles.css", styles);
+}
+
 export default async function init(root?: string, updateTasks = true) {
   // Check if deno.json has a tasks.tailwind property before attempting to download.
   // If it does, skip downloading.
 
+  // TODO: Allow deno.json path to be the one provided in run command
   const denoJsonPath = join(root ?? "./", "deno.json");
   try {
     const denoJson = await readDenoJson(denoJsonPath);
@@ -262,7 +310,7 @@ export default async function init(root?: string, updateTasks = true) {
   const executable = await download(root);
 
   if (updateTasks) {
-    await addTask(root);
+    await Promise.all([addTask(root), writeTailwindConfig()]);
   }
   return executable;
 }
