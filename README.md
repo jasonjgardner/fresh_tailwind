@@ -1,64 +1,79 @@
 # Fresh Tailwind CSS Plugin
 
-## Zero Config
+## The Path of Least Resistance
 
-Call the plugin with no configuration values for a quick, initial setup.
+Tailwind can work independently from Fresh given the correct `content` paths.
+You're still able to use `npx tailwindcss` to initialize and compile Tailwind
+CSS in your Fresh project directory. If that works for you,
+[go for it](https://tailwindcss.com/docs/installation).
 
-**fresh.config.ts**
+If you'd prefer to stray further away from Node.js, you can use this plugin to
+better integrate Tailwind CSS in your Fresh project.
 
-```ts
-import { defineConfig } from "$fresh/server.ts";
-import tailwindPlugin from "https://deno.land/x/fresh_tailwind/mod.ts";
-
-export default defineConfig({
-  plugins: [
-    tailwindPlugin(),
-  ],
-});
-```
-
-## Some Config
-
-Provide configuration settings to optimize your CSS output and improve your DX.
-
-**fresh.config.ts**
-
-```ts
-import { defineConfig } from "$fresh/server.ts";
-import tailwindPlugin from "https://deno.land/x/fresh_tailwind/mod.ts";
-
-const IS_DEV = import.meta.url.endsWith("/dev.ts") ||
-  Deno.env.get("FRSH_DEV_PREVIOUS_MANIFEST") !== undefined;
-
-export default defineConfig({
-  plugins: [
-    tailwindPlugin({
-      // Input CSS string
-      css: await Deno.readTextFile("./src/style.css"),
-      // Whether or not to pass Fresh's HTML output to PostCSS during render
-      hookRender: IS_DEV,
-      // Where the compiled CSS will be saved
-      dest: "./static/styles.css",
-      // Path to Tailwind CSS configuration for compiler
-      configFile: "./tailwind.deno.ts",
-    }),
-  ],
-});
-```
-
-### Note
-
-Setting `dest` to a location within a watched directory (i.e. `./static`) could
-cause a refresh loop.
-
-If `dest` is provided and `hookRender` is not, or is `false`, an initial build
-step will be required to create the CSS file.
+### Setup
 
 In your Fresh project directory:
 
 ```shell
-deno run --allow-read --allow-write --allow-env --config=./deno.json https://deno.land/x/fresh_tailwind/main.ts
+deno run -c deno.json https://deno.land/x/fresh_tailwind/main.ts --install
 ```
+
+This will download a binary of the
+[Tailwind standalone CLI](https://tailwindcss.com/blog/standalone-cli) build
+from GitHub, according to your Deno environment's OS. The binary hash is
+compared to the
+[published list of checksums](https://github.com/tailwindlabs/tailwindcss/releases/download/v3.3.3/sha256sums.txt)
+before it is saved to disk. It will amend Tailwind build tasks to the project's
+`deno.json` file, and will create `tailwind.config.ts` and `src/style.css` files
+if they do not already exist.
+
+### Build Options
+
+Compile Tailwind CSS independently.
+
+```shell
+deno task tailwind:build
+```
+
+---
+
+Watch project directory to compile Tailwind CSS independently.
+
+```shell
+deno task tailwind:watch
+```
+
+> You may need to update the tasks in `deno.json` to omit the CSS destination
+> from the list of watched directories.
+
+---
+
+#### Build with Fresh
+
+Include the build plugin to compile Tailwind CSS during Fresh's build process.
+
+```ts
+import { defineConfig } from "$fresh/server.ts";
+import tailwindBuildPlugin from "fresh_tailwind/build.ts";
+
+export default defineConfig({
+  plugins: [
+    tailwindBuildPlugin(),
+  ],
+});
+```
+
+Running `deno task build` will now include the Tailwind build step.
+
+---
+
+### Manual Labor 😨
+
+- Add `<link href="/styles.css" rel="stylesheet" />` to your Fresh website's
+  `<head>`
+- Add `bin/tailwindcss` to your `.gitignore` file.
+
+---
 
 ## Using IntelliSense
 
@@ -70,13 +85,13 @@ The Tailwind IntelliSense extension is powered by a Vite language server.
 IntelliSense hints will not work if _Vite_ is unable to process the
 `tailwind.config.ts` file.
 
-You can create a Deno-specific Tailwind configuration file for your Fresh
-deployment. The Tailwind configuration intended for Deno can simply
+You can _optionally_ create a Deno-specific Tailwind configuration file for your
+Fresh deployment. The Tailwind configuration intended for Deno can simply
 [extend the one used for Vite](#tailwinddenots).
 
 ### Example
 
-> #### Using Tailwind plugins?
+> #### Adding Tailwind Plugins to IntelliSense
 >
 > Run `npm install` for the Tailwind IntelliSense language server.
 >
@@ -155,26 +170,53 @@ export default {
   }
 }
 ```
+
+---
+
+# Hero Patterns
+
+```jsx
+import { pattern } from "fresh_tailwind/hero.ts";
+
+const dotPattern =
+  '<svg xmlns="http://www.w3.org/2000/svg" width="4" height="4" viewBox="0 0 4 4"><path fill="#000000" d="M1 3h1v1H1V3zm2-2h1v1H3V1z"></path></svg>';
+
+export default function HeroBanner() {
+  return (
+    <div
+      class="bg-[#86efb5]"
+      style={pattern("#7ec19c", dotPattern)}
+    >
+    </div>
+  );
+}
+```
+
 # Heroicons
 
-Extend your import map, or `deno.json` imports property, with the following items:
+Extend your import map, or `deno.json` imports property, with the following
+items:
+
 ```json
 {
-    "react": "https://esm.sh/preact@10.18.1/compat",
-    "react/": "https://esm.sh/preact@10.18.1/preact/compat/",
-    "react-dom": "https://esm.sh/preact@10.18.1/compat",
-    "@heroicons/24/outline/": "https://unpkg.com/@heroicons/react@2.0.18/24/outline/esm/",
-    "@heroicons/24/solid/": "https://unpkg.com/@heroicons/react@2.0.18/24/solid/esm/",
-    "@heroicons/20/solid/": "https://unpkg.com/@heroicons/react@2.0.18/20/solid/esm/"
+  "react": "https://esm.sh/preact@10.18.1/compat",
+  "react/": "https://esm.sh/preact@10.18.1/preact/compat/",
+  "react-dom": "https://esm.sh/preact@10.18.1/compat",
+  "@heroicons/24/outline/": "https://unpkg.com/@heroicons/react@2.0.18/24/outline/esm/",
+  "@heroicons/24/solid/": "https://unpkg.com/@heroicons/react@2.0.18/24/solid/esm/",
+  "@heroicons/20/solid/": "https://unpkg.com/@heroicons/react@2.0.18/20/solid/esm/"
 }
 ```
 
 ## Usage
+
 ```jsx
 import BeakerIcon from "@heroicons/24/solid/BeakerIcon.js";
 
-<BeakerIcon />
+<BeakerIcon />;
 ```
+
+---
 
 ## License
 
