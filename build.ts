@@ -11,7 +11,7 @@ export interface TailwindPluginOptions {
  * @returns Fresh Tailwind plugin
  */
 export default function tailwindBuildPlugin(options?: TailwindPluginOptions) {
-  const fileName = options?.dest ?? "style.css";
+  const fileName = options?.dest ?? "styles.css";
   const plugin: Plugin = {
     name: "tailwind_build_plugin",
     buildStart: async (config) => {
@@ -23,10 +23,10 @@ export default function tailwindBuildPlugin(options?: TailwindPluginOptions) {
       const tailwindCmd = new Deno.Command(tailwindBin, {
         args: [
           "-o",
-          `${config.staticDir}/${fileName}`,
+          `${config?.staticDir ?? "./static"}/${fileName}`,
           "--config",
           `${Deno.cwd()}/tailwind.config.ts`,
-          !config.dev ? "--minify" : "",
+          !config?.dev ? "--minify" : "",
         ],
       });
 
