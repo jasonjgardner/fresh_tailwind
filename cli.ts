@@ -256,6 +256,22 @@ export async function writeTailwindConfig() {
 };`;
 
   await Deno.writeTextFile("./tailwind.config.ts", content);
+
+  try {
+    await Deno.readTextFile("./src/styles.css");
+    return;
+  } catch (err) {
+    if (!(err instanceof Deno.errors.NotFound) && !(err instanceof TypeError)) {
+      throw err;
+    }
+  }
+
+  const styles = `@tailwind base;
+  @tailwind components;
+  @tailwind utilities;`;
+
+  await ensureDir("./src");
+  await Deno.writeTextFile("./src/styles.css", styles);
 }
 
 export default async function init(root?: string, updateTasks = true) {
