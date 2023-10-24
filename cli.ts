@@ -237,10 +237,32 @@ export async function addTask(cwd?: string) {
   );
 }
 
+export async function writeTailwindConfig() {
+  try {
+    await Deno.readTextFile("./tailwind.config.ts");
+    return;
+  } catch (err) {
+    if (!(err instanceof Deno.errors.NotFound) && !(err instanceof TypeError)) {
+      throw err;
+    }
+  }
+
+  const content = `export default {
+  content: [
+    "./routes/**/*.{ts,tsx}",
+    "./islands/**/*.tsx",
+    "./components/**/*.tsx",
+  ],
+};`;
+
+  await Deno.writeTextFile("./tailwind.config.ts", content);
+}
+
 export default async function init(root?: string, updateTasks = true) {
   // Check if deno.json has a tasks.tailwind property before attempting to download.
   // If it does, skip downloading.
 
+  // TODO: Allow deno.json path to be the one provided in run command
   const denoJsonPath = join(root ?? "./", "deno.json");
   try {
     const denoJson = await readDenoJson(denoJsonPath);
@@ -262,7 +284,7 @@ export default async function init(root?: string, updateTasks = true) {
   const executable = await download(root);
 
   if (updateTasks) {
-    await addTask(root);
+    await Promise.all([addTask(root), writeTailwindConfig()]);
   }
   return executable;
 }
