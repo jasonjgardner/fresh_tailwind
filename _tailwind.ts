@@ -1,5 +1,16 @@
-import { join, toFileUrl } from "./deps.ts";
+import { toFileUrl } from "./deps.ts";
 
+/**
+ * Attempt to import a Tailwind configuration file.
+ * If no file is provided, it will attempt to import the default config file names.
+ * @param configFile Optional file path to the Tailwind config file.
+ * @returns Imported configuration file
+ * @throws {Error} If the config file is not found
+ * @example
+ * ```ts
+ * const config = await tryImportConfig("./tailwind.config.ts");
+ * ```
+ */
 export async function tryImportConfig(
   configFile?: string,
 ) {
@@ -25,9 +36,15 @@ export async function tryImportConfig(
 }
 
 /**
- * Load Tailwind configuration from a file.
+ * Load Tailwind configuration from a file. Return a default configuration if no file is provided.
  * @param configFile __Absolute__ path to the Tailwind config file.
  * @returns Tailwind configuration
+ * @throws {Error} If the config file is not found
+ * @example
+ * ```ts
+ * const config = await getConfig("./tailwind.config.ts");
+ * ```
+ * @uses {@link tryImportConfig}
  */
 export async function getConfig(
   configFile?: string,
