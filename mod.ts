@@ -1,55 +1,20 @@
 import type {
-  Plugin,
   PluginAsyncRenderContext,
   PluginRenderResult,
 } from "$fresh/server.ts";
-import { asset } from "$fresh/runtime.ts";
-import type { AcceptedPlugin, ProcessOptions, Result } from "./deps.ts";
-import { autoprefixer, postcss, tailwindcss as tailwind } from "./deps.ts";
+import { asset, IS_BROWSER } from "$fresh/runtime.ts";
+import {
+  type AcceptedPlugin,
+  autoprefixer,
+  ensureDir,
+  postcss,
+  type Result,
+  tailwindcss as tailwind,
+} from "./deps.ts";
 import { getConfig } from "./_tailwind.ts";
-
-/**
- * Fresh Tailwind plugin settings.
- */
-export interface TailwindOptions {
-  css?: string;
-  /**
-   * List of PostCSS plugins to use.
-   * (Already includes Tailwind and Autoprefixer.)
-   */
-  plugins?: AcceptedPlugin[];
-  /**
-   * Options to pass onto PostCSS.
-   * Include `from` and `to` options to enable source maps.
-   */
-  postcssOptions?: ProcessOptions;
-  /**
-   * List of paths to files that should be scanned for classes.
-   * Defaults to check routes, islands and components.
-   */
-  tailwindContent?: Array<string | { raw: string; extension: string }>;
-  // TODO: Get from Fresh
-  /**
-   * The destination of the generated CSS file.
-   * Should include file name. Defaults to `./static/style.css`.
-   */
-  dest?: string;
-  /**
-   * The Fresh static content directory path.
-   * Defaults to `./static`.
-   */
-  staticDir?: string;
-  /**
-   * Whether to hook into the render process.
-   * Useful during development.
-   */
-  hookRender?: boolean;
-
-  /**
-   * The Tailwind configuration file path.
-   */
-  configFile?: string;
-}
+import init from "./cli.ts";
+import { ResolvedFreshConfig } from "$fresh/src/server/types.ts";
+import type { TailwindOptions, TailwindPlugin } from "./types.ts";
 
 /**
  * The ID of the style element that is injected into the HTML.
@@ -108,8 +73,16 @@ export async function processTailwind(
 async function renderTailwind(
   options: TailwindOptions,
 ): Promise<PluginRenderResult> {
+  if (IS_BROWSER) {
+    return {
+      styles: [],
+    };
+  }
+
   const { css } = await processTailwind(options);
   const staticDir = options.staticDir ?? "./static";
+
+  // Prepare style output
   const styles = [{
     id: STYLE_ELEMENT_ID,
     cssText: options.dest
@@ -123,15 +96,15 @@ async function renderTailwind(
   }];
 
   try {
+    // Attempt to write styles to file when a destination is provided
     if (options.dest && options.dest.includes(staticDir)) {
       await Deno.writeTextFile(options.dest, css);
     }
   } catch (err) {
     console.warn("Failed to write Tailwind CSS to file.\n%s", err);
+    // Fallback to including styles in HTML
     styles[0].cssText = css;
   }
-
-  // TODO: Allow injecting fonts
 
   return {
     styles,
@@ -144,21 +117,93 @@ async function renderTailwind(
  * @returns Fresh Tailwind plugin
  */
 export default function tailwindPlugin(
-  options: TailwindOptions = {},
+  options: TailwindOptions = {
+    hookRender: false,
+  },
 ) {
-  const plugin: Plugin = {
+  /**
+   * Compile Tailwind CSS and write to file,
+   * ensuring the output directory exists.
+   * @param opts {@link TailwindOptions}
+   * @param conf Fresh configuration
+   */
+  const buildProcess = async (
+    opts?: TailwindOptions,
+    conf?: ResolvedFreshConfig,
+  ) => {
+    const { css } = await processTailwind({
+      dest: `${conf?.build?.outDir ?? conf?.staticDir ?? "./dist"}/style.css`,
+      ...opts,
+    });
+    const dest = opts?.dest ?? "./static/style.css";
+    await ensureDir(dest.split("/").slice(0, -1).join("/"));
+    await Deno.writeTextFile(dest, css);
+  };
+
+  const plugin: TailwindPlugin = {
     name: "tailwind_plugin",
-    buildStart: async () => {
-      const { css } = await processTailwind(options);
-      const dest = options.dest ?? "./static/style.css";
-      await Deno.writeTextFile(dest, css);
+    /**
+     * Output Tailwind CSS to file on Fresh build command.
+     * @param config Fresh configuration
+     */
+    buildStart: async (config) => {
+      await buildProcess(options, config);
+    },
+    /**
+     * Exposes Tailwind build process as a plugin method.
+     * @param opts {@link TailwindOptions}
+     * @example
+     * ```ts
+     * import tailwindPlugin from "fresh_tailwind/mod.ts";
+     * const tailwind = tailwindPlugin();
+     * await tailwind.build();
+     * ```
+     */
+    async build(opts?: TailwindOptions) {
+      await buildProcess(opts ?? options);
+    },
+    /**
+     * Initialize Tailwind standalone CLI download.
+     * Use in development and run only as needed.
+     * @returns Installation plugin
+     * @example
+     * ```ts
+     * import { defineConfig } from "$fresh/server.ts";
+     * import tailwindPlugin from "fresh_tailwind/mod.ts";
+     *
+     * // Run once to install Tailwind CLI in your development environment.
+     * export default defineConfig({
+     *  plugins: [ await tailwindPlugin.install() ],
+     * });
+     * ```
+     */
+    async install() {
+      await init();
+      return {
+        ...plugin,
+        name: "tailwind_installation",
+      };
     },
   };
 
   // Send current HTML to Tailwind for processing
   if (options.hookRender) {
-    plugin.renderAsync = async (ctx: PluginAsyncRenderContext) => {
+    /**
+     * Render Tailwind based on current HTML and configuration content.
+     * @param ctx Render context
+     * @returns Tailwind styles for use in render function
+     */
+    plugin.renderAsync = async function renderTailwindStyles(
+      ctx: PluginAsyncRenderContext,
+    ) {
       const res = await ctx.renderAsync();
+
+      if (!res.requiresHydration) {
+        return {
+          styles: [],
+        };
+      }
+
       options.tailwindContent = [{
         raw: res.htmlText,
         extension: ".html",

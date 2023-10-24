@@ -1,13 +1,26 @@
 import tailwindPlugin from "./mod.ts";
-import { join } from "$std/path/mod.ts";
+/**
+ * @example Run Tailwind installation from command line.
+ * ```
+ * deno run -A https://deno.land/x/fresh_tailwind/main.ts --install
+ * ```
+ *
+ * @example Run Tailwind build from command line.
+ * ```
+ * deno run -A https://deno.land/x/fresh_tailwind/main.ts
+ * ```
+ */
+async function run() {
+  const tailwind = tailwindPlugin();
 
-const css = await Deno.readTextFile(join(Deno.cwd(), "src", "style.css"));
+  if (Deno.args.includes("--install")) {
+    await tailwind.install();
+    return;
+  }
 
-const tailwind = tailwindPlugin({
-  css,
-  dest: "./static/styles.css",
-});
+  await tailwind.build();
+}
 
 if (import.meta.main) {
-  await tailwind.buildStart!();
+  await run();
 }

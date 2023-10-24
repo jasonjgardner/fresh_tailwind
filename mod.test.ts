@@ -4,14 +4,10 @@ import {
   assertStringIncludes,
 } from "$std/assert/mod.ts";
 import tailwindPlugin, { STYLE_ELEMENT_ID } from "./mod.ts";
+import type { ResolvedFreshConfig } from "$fresh/src/server/types.ts";
 
 Deno.test("Test PostCSS/Tailwind with render hook", async function processTailwindTest() {
-  const plugin = tailwindPlugin({
-    css: `.test {
-      @apply text-red-500;
-    }`,
-    hookRender: true,
-  });
+  const plugin = tailwindPlugin();
 
   assertNotEquals(plugin, undefined);
 
@@ -45,15 +41,7 @@ Deno.test("Test PostCSS/Tailwind with render hook", async function processTailwi
 });
 
 Deno.test("Test PostCSS/Tailwind with build step", async function buildTailwindTest() {
-  const plugin = tailwindPlugin({
-    css: `.test {
-      @apply text-green-500;
-    }`,
-    hookRender: false,
-    staticDir: "./test",
-    dest: "./test/style.css",
-    configFile: "./test/tailwind.config.ts",
-  });
+  const plugin = tailwindPlugin();
 
   assertNotEquals(plugin, undefined);
 
@@ -61,7 +49,14 @@ Deno.test("Test PostCSS/Tailwind with build step", async function buildTailwindT
     throw new Error("Plugin is undefined");
   }
 
-  await plugin.buildStart?.();
+  await plugin.buildStart!(
+    {
+      build: {
+        outDir: "./test",
+        target: ["esnext"],
+      },
+    } as ResolvedFreshConfig,
+  );
 
   const css = await Deno.readTextFile("./test/style.css");
 
