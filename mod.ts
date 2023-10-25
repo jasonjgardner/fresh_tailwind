@@ -197,11 +197,17 @@ export default function tailwindPlugin(
       ctx: PluginAsyncRenderContext,
     ) {
       const res = await ctx.renderAsync();
+      const isPartial = ctx.url?.searchParams?.get("fresh-partial") === "true";
 
-      if (!res.requiresHydration) {
-        return {
-          styles: [],
-        };
+
+      if (isPartial) {
+        return renderTailwind({
+          ...options,
+          tailwindContent: [{
+            raw: res.htmlText,
+            extension: ".html",
+          }],
+        });
       }
 
       options.tailwindContent = [{
