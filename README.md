@@ -1,16 +1,11 @@
 # Fresh Tailwind CSS Plugin
 
-## The Path of Least Resistance
+## Quick Start
+[![Open CodeSandbox Template](https://img.shields.io/badge/CodeSandbox-151515.svg?style=for-the-badge&logo=CodeSandbox&logoColor=white)](https://codesandbox.io/p/sandbox/fresh-tailwind-hxg9dk "View Fresh + Tailwind starter template")
 
-Tailwind can work independently from Fresh given the correct `content` paths.
-You're still able to use `npx tailwindcss` to initialize and compile Tailwind
-CSS in your Fresh project directory. If that works for you,
-[go for it](https://tailwindcss.com/docs/installation).
+[Clone the starter template](https://github.com/jasonjgardner/fresh_tailwind_example) for a pre-configured Tailwind + Fresh environment.
 
-If you'd prefer to stray further away from Node.js, you can use this plugin to
-better integrate Tailwind CSS in your Fresh project.
-
-### Setup
+## Setup Ahead-of-Time Builds
 
 In your Fresh project directory:
 
@@ -215,6 +210,16 @@ import BeakerIcon from "@heroicons/24/solid/BeakerIcon.js";
 
 <BeakerIcon />;
 ```
+
+## The Path of Least Resistance
+
+Tailwind can work independently from Fresh given the correct `content` paths.
+You're still able to use `npx tailwindcss` to initialize and compile Tailwind
+CSS in your Fresh project directory. If that works for you,
+[go for it](https://tailwindcss.com/docs/installation).
+
+If you'd prefer to stray further away from Node.js, you can use this plugin to
+better integrate Tailwind CSS in your Fresh project.
 
 ---
 
