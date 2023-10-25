@@ -210,8 +210,9 @@ import BeakerIcon from "@heroicons/24/solid/BeakerIcon.js";
 
 <BeakerIcon />;
 ```
+---
 
-## The Path of Least Resistance
+# The Path of Least Resistance
 
 Tailwind can work independently from Fresh given the correct `content` paths.
 You're still able to use `npx tailwindcss` to initialize and compile Tailwind
