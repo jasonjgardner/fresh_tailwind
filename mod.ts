@@ -72,6 +72,7 @@ export async function processTailwind(
  */
 async function renderTailwind(
   options: TailwindOptions,
+  id: string = STYLE_ELEMENT_ID,
 ): Promise<PluginRenderResult> {
   if (IS_BROWSER) {
     return {
@@ -84,14 +85,14 @@ async function renderTailwind(
 
   // Prepare style output
   const styles = [{
-    id: STYLE_ELEMENT_ID,
+    id,
     cssText: options.dest
-      ? `@import url(${
+      ? `@import url("${
         asset(options.dest.replace(
           staticDir, // Make asset URL relative to static dir
           "",
         ))
-      })`
+      }")`
       : css,
   }];
 
@@ -199,24 +200,42 @@ export default function tailwindPlugin(
       const res = await ctx.renderAsync();
       const isPartial = ctx.url?.searchParams?.get("fresh-partial") === "true";
 
-
       if (isPartial) {
-        return renderTailwind({
-          ...options,
-          tailwindContent: [{
-            raw: res.htmlText,
-            extension: ".html",
-          }],
-        });
+        return await renderTailwind(
+          {
+            ...options,
+            tailwindContent: [{
+              raw: res.htmlText,
+              extension: ".html",
+            }],
+          },
+          `${STYLE_ELEMENT_ID}_PARTIAL_${
+            (ctx.url?.pathname ?? "").replace("/", "")
+          }`,
+        );
       }
 
-      options.tailwindContent = [{
-        raw: res.htmlText,
-        extension: ".html",
-      }, ...(options.tailwindContent ?? [])];
-
-      return renderTailwind(options);
+      return await renderTailwind(options);
     };
+
+    if (options.dest) {
+      plugin.renderAsync = async function renderTailwindStyles(
+        ctx: PluginAsyncRenderContext,
+      ) {
+        const res = await ctx.renderAsync();
+        return {
+          styles: [{
+            id: `${STYLE_ELEMENT_ID}_${options.dest.replaceAll("/", "")}`,
+            cssText: `@import url("${
+              asset(options.dest.replace(
+                options.staticDir ?? "./static", // Make asset URL relative to static dir
+                "",
+              ))
+            }")`,
+          }],
+        };
+      };
+    }
   }
 
   return plugin;
