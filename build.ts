@@ -3,6 +3,7 @@ import { join } from "./deps.ts";
 
 export interface TailwindPluginOptions {
   dest?: string;
+  binLocation?: string;
 }
 
 /**
@@ -15,10 +16,7 @@ export default function tailwindBuildPlugin(options?: TailwindPluginOptions) {
   const plugin: Plugin = {
     name: "tailwind_build_plugin",
     buildStart: async (config) => {
-      const tailwindBin =
-        JSON.parse(await Deno.readTextFile(join(Deno.cwd(), "deno.json")))
-          ?.tasks
-          ?.tailwind ?? "./bin/tailwindcss";
+      const tailwindBin = options?.binLocation ?? "./bin/tailwindcss";
 
       const tailwindCmd = new Deno.Command(tailwindBin, {
         args: [
