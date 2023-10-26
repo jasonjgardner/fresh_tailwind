@@ -15,7 +15,7 @@ export default defineConfig({
 [![Open CodeSandbox Template](https://img.shields.io/badge/CodeSandbox-151515.svg?style=for-the-badge&logo=CodeSandbox&logoColor=white)](https://codesandbox.io/p/sandbox/fresh-tailwind-hxg9dk "View Fresh + Tailwind starter template")
 
 [Try it on CodeSandbox](https://codesandbox.io/p/sandbox/fresh-tailwind-hxg9dk)
-to see a demo configuration.
+to see a [demo](https://f5j7fl-8000.csb.app/) and example configuration.
 
 [Clone the starter template](https://github.com/jasonjgardner/fresh_tailwind_example)
 for a pre-configured Tailwind + Fresh environment.
