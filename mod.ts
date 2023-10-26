@@ -5,7 +5,6 @@ import type {
 import { asset, IS_BROWSER } from "$fresh/runtime.ts";
 import {
   type AcceptedPlugin,
-  autoprefixer,
   ensureDir,
   postcss,
   type Result,
@@ -36,9 +35,6 @@ export async function processTailwind(
   const config = await getConfig(configFile);
 
   const postcssPlugins: AcceptedPlugin[] = [
-    // TODO: Pass build target to autoprefixer
-    autoprefixer(),
-
     // @ts-ignore - Tailwind types not setup
     tailwind({
       ...config,
