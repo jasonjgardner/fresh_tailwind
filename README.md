@@ -1,13 +1,39 @@
 # Fresh Tailwind CSS Plugin
 
-## Quick Start
+Ready, set, copy/paste:
+
+```ts
+import tailwindPlugin from "https://deno.land/x/fresh_tailwind/mod.ts";
+
+export default defineConfig({
+  plugins: [
+    tailwindPlugin(),
+  ],
+});
+```
+
 [![Open CodeSandbox Template](https://img.shields.io/badge/CodeSandbox-151515.svg?style=for-the-badge&logo=CodeSandbox&logoColor=white)](https://codesandbox.io/p/sandbox/fresh-tailwind-hxg9dk "View Fresh + Tailwind starter template")
 
-[Clone the starter template](https://github.com/jasonjgardner/fresh_tailwind_example) for a pre-configured Tailwind + Fresh environment.
+[Try it on CodeSandbox](https://codesandbox.io/p/sandbox/fresh-tailwind-hxg9dk)
+to see a demo configuration.
 
-## Setup Ahead-of-Time Builds
+[Clone the starter template](https://github.com/jasonjgardner/fresh_tailwind_example)
+for a pre-configured Tailwind + Fresh environment.
 
-In your Fresh project directory:
+## Configuration
+
+Defining the following properties is recommended, but none are required:
+
+**`css`** - File path to CSS source, or a CSS string, to process.\
+**`dest`** - Output file path. **Requires** `deno task build` first!\
+**`plugins`** - Array of PostCSS plugins to use during compilation.
+
+See [`./types.ts`](./types.ts#12) for more options.
+
+# Use Tailwind CLI in Builds
+
+You can alternatively use Tailwind's standalone CLI to compile your CSS. In your
+Fresh project directory:
 
 ```shell
 deno run -c deno.json https://deno.land/x/fresh_tailwind/main.ts --install
@@ -22,7 +48,7 @@ before it is saved to disk. It will amend Tailwind build tasks to the project's
 `deno.json` file, and will create `tailwind.config.ts` and `src/style.css` files
 if they do not already exist.
 
-### Build Options
+## Build Options
 
 Compile Tailwind CSS independently.
 
@@ -30,7 +56,7 @@ Compile Tailwind CSS independently.
 deno task tailwind:build
 ```
 
----
+**or**
 
 Watch project directory to compile Tailwind CSS independently.
 
@@ -41,7 +67,7 @@ deno task tailwind:watch
 > You may need to update the tasks in `deno.json` to omit the CSS destination
 > from the list of watched directories.
 
----
+**or**
 
 #### Build with Fresh
 
@@ -60,17 +86,13 @@ export default defineConfig({
 
 Running `deno task build` will now include the Tailwind build step.
 
----
+##### Manual Labor 😨
 
-### Manual Labor 😨
-
-- Add `<link href="/styles.css" rel="stylesheet" />` to your Fresh website's
-  `<head>`
 - Add `bin/tailwindcss` to your `.gitignore` file.
 
 ---
 
-## Using IntelliSense
+# Using IntelliSense
 
 The following example shows how to enable **Tailwind plugins** in
 [Tailwind CSS IntelliSense](https://marketplace.visualstudio.com/items?itemName=bradlc.vscode-tailwindcss).
@@ -210,6 +232,7 @@ import BeakerIcon from "@heroicons/24/solid/BeakerIcon.js";
 
 <BeakerIcon />;
 ```
+
 ---
 
 # The Path of Least Resistance
