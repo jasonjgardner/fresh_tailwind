@@ -184,7 +184,9 @@ export default function tailwindPlugin(
      * @param config Fresh configuration
      */
     buildStart: async (config) => {
-      await buildProcess(options, config);
+      if (options.dest) {
+        await buildProcess(options, config);
+      }
     },
     /**
      * Exposes Tailwind build process as a plugin method.
