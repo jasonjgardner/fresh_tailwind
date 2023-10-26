@@ -5,7 +5,6 @@ import type {
 import { asset, IS_BROWSER } from "$fresh/runtime.ts";
 import {
   type AcceptedPlugin,
-  autoprefixer,
   ensureDir,
   postcss,
   type Result,
@@ -13,8 +12,11 @@ import {
 } from "./deps.ts";
 import { getConfig } from "./_tailwind.ts";
 import init from "./cli.ts";
-import { ResolvedFreshConfig } from "$fresh/src/server/types.ts";
-import type { TailwindOptions, TailwindPlugin } from "./types.ts";
+import type {
+  ResolvedFreshConfig,
+  TailwindOptions,
+  TailwindPlugin,
+} from "./types.ts";
 
 /**
  * The ID of the style element that is injected into the HTML.
@@ -33,9 +35,6 @@ export async function processTailwind(
   const config = await getConfig(configFile);
 
   const postcssPlugins: AcceptedPlugin[] = [
-    // TODO: Pass build target to autoprefixer
-    autoprefixer(),
-
     // @ts-ignore - Tailwind types not setup
     tailwind({
       ...config,
@@ -134,9 +133,7 @@ async function renderTailwind(
  * @returns Fresh Tailwind plugin
  */
 export default function tailwindPlugin(
-  options: TailwindOptions = {
-    hookRender: false,
-  },
+  options: TailwindOptions = {},
 ) {
   /**
    * Compile Tailwind CSS and write to file,
