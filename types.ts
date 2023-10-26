@@ -15,6 +15,11 @@ export interface TailwindOptions {
    */
   css?: string;
   /**
+   * The destination of the generated CSS file.
+   * Should include file name. Defaults to `./static/style.css`.
+   */
+  dest?: string;
+  /**
    * List of PostCSS plugins to use.
    */
   plugins?: AcceptedPlugin[];
@@ -27,18 +32,11 @@ export interface TailwindOptions {
    * Defaults to check routes, islands and components.
    */
   tailwindContent?: Array<string | { raw: string; extension: string }>;
-
-  /**
-   * The destination of the generated CSS file.
-   * Should include file name. Defaults to `./static/style.css`.
-   */
-  dest?: string;
   /**
    * The Fresh static content directory path.
    * Defaults to `./static`.
    */
   staticDir?: string;
-
   /**
    * The Tailwind configuration file path.
    */
