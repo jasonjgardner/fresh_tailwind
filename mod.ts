@@ -27,7 +27,7 @@ export const STYLE_ELEMENT_ID = "__FRSH_TAILWIND";
  * @returns PostCSS result
  */
 export async function processTailwind(
-  { plugins = [], postcssOptions, css, tailwindContent, configFile }:
+  { plugins = [], postcssOptions, css, tailwindContent, configFile, dest }:
     TailwindOptions,
 ): Promise<Result> {
   const config = await getConfig(configFile);
@@ -58,6 +58,7 @@ export async function processTailwind(
     stylesheet,
     {
       from: isFile ? css : undefined,
+      to: dest,
       ...postcssOptions,
     },
   );
@@ -80,31 +81,46 @@ async function renderTailwind(
     };
   }
 
-  const { css } = await processTailwind(options);
   const staticDir = options.staticDir ?? "./static";
+  const hasDestination = options.dest !== undefined &&
+    options.dest.includes(staticDir);
 
-  // Prepare style output
+  const { css, map } = await processTailwind(options);
+  const inlineMap = `/*# sourceMappingURL=data:application/json;base64,${
+    btoa(JSON.stringify(map?.toJSON() ?? {}))
+  } */`;
+
+  // Prepare style output. Use an import if a destination is provided.
   const styles = [{
     id,
-    cssText: options.dest
+    cssText: hasDestination
       ? `@import url("${
-        asset(options.dest.replace(
+        asset(options.dest!.replace(
           staticDir, // Make asset URL relative to static dir
           "",
         ))
-      }")`
-      : css,
+      }")\n${inlineMap}`
+      : `${css}\n${inlineMap}`,
   }];
 
   try {
     // Attempt to write styles to file when a destination is provided
-    if (options.dest && options.dest.includes(staticDir)) {
-      await Deno.writeTextFile(options.dest, css);
+    if (hasDestination) {
+      await Deno.writeTextFile(options.dest as string, css);
     }
   } catch (err) {
     console.warn("Failed to write Tailwind CSS to file.\n%s", err);
     // Fallback to including styles in HTML
-    styles[0].cssText = css;
+    styles[0].cssText = `${css}\n${inlineMap}`;
+  }
+
+  try {
+    // Attempt to write map to file when a destination is provided
+    if (hasDestination) {
+      await Deno.writeTextFile(`${options.dest}.map`, map.toString());
+    }
+  } catch (err) {
+    console.warn("Failed to write Tailwind CSS map to file.\n%s", err);
   }
 
   return {
@@ -143,6 +159,29 @@ export default function tailwindPlugin(
 
   const plugin: TailwindPlugin = {
     name: "tailwind_plugin",
+    render(ctx) {
+      ctx.render();
+
+      if (!options.dest) {
+        return {
+          styles: [],
+        };
+      }
+
+      return {
+        styles: [{
+          id: `${STYLE_ELEMENT_ID}`,
+          cssText: `@import url("${
+            asset(
+              options.dest?.replace(
+                options.staticDir ?? "./static", // Make asset URL relative to static dir
+                "",
+              ) ?? "./style.css",
+            )
+          }")`,
+        }],
+      };
+    },
     /**
      * Output Tailwind CSS to file on Fresh build command.
      * @param config Fresh configuration
@@ -187,56 +226,35 @@ export default function tailwindPlugin(
     },
   };
 
-  // Send current HTML to Tailwind for processing
-  if (options.hookRender) {
-    /**
-     * Render Tailwind based on current HTML and configuration content.
-     * @param ctx Render context
-     * @returns Tailwind styles for use in render function
-     */
-    plugin.renderAsync = async function renderTailwindStyles(
-      ctx: PluginAsyncRenderContext,
-    ) {
-      const res = await ctx.renderAsync();
-      const isPartial = ctx.url?.searchParams?.get("fresh-partial") === "true";
-
-      if (isPartial) {
-        return await renderTailwind(
-          {
-            ...options,
-            tailwindContent: [{
-              raw: res.htmlText,
-              extension: ".html",
-            }],
-          },
-          `${STYLE_ELEMENT_ID}_PARTIAL_${
-            (ctx.url?.pathname ?? "").replace("/", "")
-          }`,
-        );
-      }
-
-      return await renderTailwind(options);
-    };
+  /**
+   * Render Tailwind based on current HTML and configuration content.
+   * @param ctx Render context
+   * @returns Tailwind styles for use in render function
+   */
+  plugin.renderAsync = async function renderTailwindStylesWithInject(
+    ctx: PluginAsyncRenderContext,
+  ) {
+    const res = await ctx.renderAsync();
 
     if (options.dest) {
-      plugin.renderAsync = async function renderTailwindStyles(
-        ctx: PluginAsyncRenderContext,
-      ) {
-        const res = await ctx.renderAsync();
-        return {
-          styles: [{
-            id: `${STYLE_ELEMENT_ID}_${options.dest.replaceAll("/", "")}`,
-            cssText: `@import url("${
-              asset(options.dest.replace(
-                options.staticDir ?? "./static", // Make asset URL relative to static dir
-                "",
-              ))
-            }")`,
-          }],
-        };
+      return {
+        styles: [],
       };
     }
-  }
+
+    return await renderTailwind(
+      {
+        ...options,
+        tailwindContent: [{
+          raw: res.htmlText,
+          extension: ".html",
+        }],
+      },
+      `${STYLE_ELEMENT_ID}_PARTIAL_${
+        res.htmlText.lastIndexOf(`${STYLE_ELEMENT_ID}_PARTIAL`) + 1
+      }`,
+    );
+  };
 
   return plugin;
 }
