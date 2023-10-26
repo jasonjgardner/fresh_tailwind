@@ -1,4 +1,6 @@
 #!/usr/bin/env -S deno run --allow-sys=osRelease --allow-net=github.com,objects.githubusercontent.com --allow-read=./ --allow-write=./
+import { JSONC } from "$fresh/src/server/deps.ts";
+import { existsSync } from "$std/fs/mod.ts";
 import { ensureDir, join } from "./deps.ts";
 
 // Download standalone Tailwind CLI from GitHub releases.
@@ -192,32 +194,40 @@ async function download(root?: string, dest = "./bin"): Promise<string> {
   return executable;
 }
 
-// FIXME: Add support for .jsonc files
-async function readDenoJson(denoJsonPath: string) {
+/** Reads and parses deno.json or deno.jsonc whichever found first. */
+async function readDenoJson(resolvedDirectory: string) {
   try {
-    const denoJson = JSON.parse(await Deno.readTextFile(denoJsonPath));
-    return denoJson;
+    const j = join(resolvedDirectory, "deno.json");
+    if (existsSync(j)) {
+      const denoJson = JSON.parse(await Deno.readTextFile(j));
+      return { denoJson: denoJson, denoJsonPath: j };
+    }
+    const jc = join(resolvedDirectory, "deno.jsonc");
+    if (existsSync(jc)) {
+      const denoJson = JSONC.parse(await Deno.readTextFile(jc));
+      return { denoJson: denoJson, denoJsonPath: j };
+    }
+    throw new Error(
+      `Neither deno.json nor deno.jsonc could be found in ${resolvedDirectory}`,
+    );
   } catch (err) {
     if (err instanceof Deno.errors.NotFound) {
       throw new Error(
-        "Could not find deno.json in the specified working directory.",
+        `Neither deno.json nor deno.jsonc could be found in ${resolvedDirectory}`,
       );
     }
-
     throw err;
   }
 }
 
 /**
  * Add Tailwind CLI commands to Deno tasks.
- * @todo Add support for .jsonc files
- * @param cwd - Current working directory for Deno project.
+ * @param cwd - Current working directory for Deno project. Defaults to `"./"` if undefined.
  */
 export async function addTask(cwd?: string) {
-  const denoJsonPath = join(cwd ?? "./", "deno.json");
-  // Add task to deno.json
+  // Add task to deno.json[c]
   try {
-    const denoJson = await readDenoJson(denoJsonPath);
+    const { denoJson, denoJsonPath } = await readDenoJson(cwd ?? "./");
 
     denoJson.tasks.tailwind = "./bin/tailwindcss";
 
@@ -233,12 +243,6 @@ export async function addTask(cwd?: string) {
 
     await Deno.writeTextFile(denoJsonPath, JSON.stringify(denoJson, null, 2));
   } catch (err) {
-    if (err instanceof Deno.errors.NotFound) {
-      throw new Error(
-        "Could not find deno.json in the specified working directory.",
-      );
-    }
-
     throw err;
   }
 
@@ -287,13 +291,13 @@ export async function writeTailwindConfig() {
 }
 
 export default async function init(root?: string, updateTasks = true) {
-  // Check if deno.json has a tasks.tailwind property before attempting to download.
+  // Check if deno.json[c] has a tasks.tailwind property before attempting to download.
   // If it does, skip downloading.
 
-  // TODO: Allow deno.json path to be the one provided in run command
-  const denoJsonPath = join(root ?? "./", "deno.json");
   try {
-    const denoJson = await readDenoJson(denoJsonPath);
+    const { denoJson, denoJsonPath: _denoJsonPath } = await readDenoJson(
+      root ?? "./",
+    );
 
     if (denoJson.tasks.tailwind) {
       console.log(
