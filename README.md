@@ -3,6 +3,7 @@
 Ready, set, copy/paste:
 
 ```ts
+import { defineConfig } from "$fresh/server.ts";
 import tailwindPlugin from "https://deno.land/x/fresh_tailwind/mod.ts";
 
 export default defineConfig({
@@ -22,7 +23,7 @@ for a pre-configured Tailwind + Fresh environment.
 
 ## Configuration
 
-Defining the following properties is recommended, but none are required:
+The following properties are recommended, but not required:
 
 **`css`** - File path to CSS source, or a CSS string, to process.\
 **`dest`** - Output file path. **Requires** `deno task build` first!\
