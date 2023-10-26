@@ -10,10 +10,12 @@ export interface TailwindPlugin extends Plugin {
  * Fresh Tailwind plugin settings.
  */
 export interface TailwindOptions {
+  /**
+   * The CSS source file path or contents as string to process.
+   */
   css?: string;
   /**
    * List of PostCSS plugins to use.
-   * (Already includes Tailwind and Autoprefixer.)
    */
   plugins?: AcceptedPlugin[];
   /**
@@ -41,4 +43,16 @@ export interface TailwindOptions {
    * The Tailwind configuration file path.
    */
   configFile?: string;
+}
+
+// TODO: Export from Fresh package once available
+export interface ResolvedFreshConfig {
+  dev: boolean;
+  build: {
+    outDir: string;
+    target: string | string[];
+  };
+  plugins: Plugin[];
+  staticDir: string;
+  server: Partial<Deno.ServeTlsOptions>;
 }
