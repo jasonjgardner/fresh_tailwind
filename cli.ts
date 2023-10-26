@@ -192,6 +192,7 @@ async function download(root?: string, dest = "./bin"): Promise<string> {
   return executable;
 }
 
+// FIXME: Add support for .jsonc files
 async function readDenoJson(denoJsonPath: string) {
   try {
     const denoJson = JSON.parse(await Deno.readTextFile(denoJsonPath));
@@ -209,6 +210,7 @@ async function readDenoJson(denoJsonPath: string) {
 
 /**
  * Add Tailwind CLI commands to Deno tasks.
+ * @todo Add support for .jsonc files
  * @param cwd - Current working directory for Deno project.
  */
 export async function addTask(cwd?: string) {

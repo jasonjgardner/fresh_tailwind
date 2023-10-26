@@ -17,8 +17,7 @@ export interface TailwindOptions {
    */
   plugins?: AcceptedPlugin[];
   /**
-   * Options to pass onto PostCSS.
-   * Include `from` and `to` options to enable source maps.
+   * Additional options to pass onto PostCSS.
    */
   postcssOptions?: ProcessOptions;
   /**
@@ -26,7 +25,7 @@ export interface TailwindOptions {
    * Defaults to check routes, islands and components.
    */
   tailwindContent?: Array<string | { raw: string; extension: string }>;
-  // TODO: Get from Fresh
+
   /**
    * The destination of the generated CSS file.
    * Should include file name. Defaults to `./static/style.css`.
@@ -37,11 +36,6 @@ export interface TailwindOptions {
    * Defaults to `./static`.
    */
   staticDir?: string;
-  /**
-   * Whether to hook into the render process.
-   * Useful during development.
-   */
-  hookRender?: boolean;
 
   /**
    * The Tailwind configuration file path.
