@@ -194,7 +194,9 @@ async function download(root?: string, dest = "./bin"): Promise<string> {
   return executable;
 }
 
-/** Reads and parses deno.json or deno.jsonc whichever found first. */
+/** Reads and parses deno.json or deno.jsonc whichever found first. Returns both the parsed content
+ * and the path to actual file discovered.
+ */
 async function readDenoJson(resolvedDirectory: string) {
   try {
     const j = join(resolvedDirectory, "deno.json");
@@ -205,7 +207,7 @@ async function readDenoJson(resolvedDirectory: string) {
     const jc = join(resolvedDirectory, "deno.jsonc");
     if (existsSync(jc)) {
       const denoJson = JSONC.parse(await Deno.readTextFile(jc));
-      return { denoJson: denoJson, denoJsonPath: j };
+      return { denoJson: denoJson, denoJsonPath: jc };
     }
     throw new Error(
       `Neither deno.json nor deno.jsonc could be found in ${resolvedDirectory}`,
