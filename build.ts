@@ -1,8 +1,14 @@
-import type { Plugin } from "$fresh/server.ts";
-import { join } from "./deps.ts";
+import type { Plugin } from "./deps.ts";
+import { DEFAULT_STYLE_NAME, DEFAULT_TAILWIND_CONFIG } from "./constants.ts";
 
 export interface TailwindPluginOptions {
+  /**
+   * The destination of the generated CSS _file_.
+   */
   dest?: string;
+  /**
+   * The location of the Tailwind CLI binary. Defaults to `./bin/tailwindcss`.
+   */
   binLocation?: string;
 }
 
@@ -11,19 +17,27 @@ export interface TailwindPluginOptions {
  * @param options - {@link TailwindOptions}
  * @returns Fresh Tailwind plugin
  */
-export default function tailwindBuildPlugin(options?: TailwindPluginOptions) {
-  const fileName = options?.dest ?? "styles.css";
+export default function tailwindBuildPlugin(options: TailwindPluginOptions = {
+  dest: "style.css",
+  binLocation: "./bin/tailwindcss",
+}) {
+  const fileName = options?.dest ?? DEFAULT_STYLE_NAME;
   const plugin: Plugin = {
     name: "tailwind_build_plugin",
-    buildStart: async (config) => {
-      const tailwindBin = options?.binLocation ?? "./bin/tailwindcss";
+    buildStart: async () => {
+      // FIXME: Fresh v1.5.2 doesn't support buildStart config yet
+      const config = {
+        staticDir: "./static",
+        dev: true,
+      };
+      const tailwindBin = options.binLocation ?? "./bin/tailwindcss";
 
       const tailwindCmd = new Deno.Command(tailwindBin, {
         args: [
           "-o",
           `${config?.staticDir ?? "./static"}/${fileName}`,
           "--config",
-          `${Deno.cwd()}/tailwind.config.ts`,
+          `${Deno.cwd()}/${DEFAULT_TAILWIND_CONFIG}`,
           !config?.dev ? "--minify" : "",
         ],
       });

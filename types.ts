@@ -1,10 +1,4 @@
-import type { Plugin } from "$fresh/server.ts";
-import type { AcceptedPlugin, ProcessOptions } from "./deps.ts";
-
-export interface TailwindPlugin extends Plugin {
-  install: () => Promise<Plugin>;
-  build: () => Promise<void>;
-}
+import type { AcceptedPlugin, Plugin, ProcessOptions } from "./deps.ts";
 
 /**
  * Fresh Tailwind plugin settings.
@@ -41,6 +35,11 @@ export interface TailwindOptions {
    * The Tailwind configuration file path.
    */
   configFile?: string;
+  /**
+   * The ID of the style element that is injected into the HTML.
+   * Should be unique to avoid conflicts with other plugins.
+   */
+  styleElementId?: string;
 }
 
 // TODO: Export from Fresh package once available
