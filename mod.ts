@@ -14,6 +14,7 @@ import {
 } from "./deps.ts";
 import { getConfig } from "./_tailwind.ts";
 import type { ResolvedFreshConfig, TailwindOptions } from "./types.ts";
+import { DEFAULT_STYLE_DEST, DEFAULT_STYLE_NAME } from "./constants.ts";
 
 /**
  * The ID of the style element that is injected into the HTML.
@@ -82,9 +83,11 @@ async function renderTailwind(
     options.dest.includes(staticDir);
 
   const { css, map } = await processTailwind(options);
-  const inlineMap = `/*# sourceMappingURL=data:application/json;base64,${
-    btoa(JSON.stringify(map?.toJSON() ?? {}))
-  } */`;
+  const inlineMap = options.postcssOptions?.map
+    ? `/*# sourceMappingURL=data:application/json;base64,${
+      btoa(JSON.stringify(map?.toJSON() ?? {}))
+    } */`
+    : "";
 
   // Prepare style output. Use an import if a destination is provided.
   const styles = [{
@@ -95,7 +98,7 @@ async function renderTailwind(
           options.dest?.replace(
             staticDir, // Make asset URL relative to static dir
             "",
-          ) ?? "./style.css",
+          ) ?? `./${DEFAULT_STYLE_NAME}`,
         )
       }")\n${inlineMap}`
       : `${css}\n${inlineMap}`,
@@ -147,11 +150,12 @@ export default function tailwindPlugin(
       const src = options.dest?.replace(
         options.staticDir ?? "./static", // Make asset URL relative to static dir
         "",
-      ) ?? "./style.css";
+      ) ?? `./${DEFAULT_STYLE_NAME}`;
 
       return {
         styles: [{
-          id: `${STYLE_ELEMENT_ID}_${encodeHex(src).substring(0, 6)}`,
+          id: options.styleElementId ??
+            `${STYLE_ELEMENT_ID}_${encodeHex(src).substring(0, 6)}`,
           cssText: `@import url("${asset(src)}")`,
         }],
       };
@@ -167,11 +171,11 @@ export default function tailwindPlugin(
         };
       }
 
-      const id = encodeHex(
+      const id = options.styleElementId ?? encodeHex(
         options.css
           ? options.css
           : res.htmlText.lastIndexOf(`${STYLE_ELEMENT_ID}_PARTIAL_`).toString(),
-      ).substring(0, 6);
+      ).substring(0, 10);
 
       return await renderTailwind(
         {
@@ -181,7 +185,7 @@ export default function tailwindPlugin(
             extension: ".html",
           }],
         },
-        `${STYLE_ELEMENT_ID}_PARTIAL_${id}`,
+        options.styleElementId ?? `${STYLE_ELEMENT_ID}_PARTIAL_${id}`,
       );
     },
     /**
@@ -195,11 +199,11 @@ export default function tailwindPlugin(
 
       const { css } = await processTailwind({
         dest: `${
-          config?.build?.outDir ?? config?.staticDir ?? "./dist"
-        }/style.css`,
+          config?.build?.outDir ?? config?.staticDir ?? "./static"
+        }/${DEFAULT_STYLE_NAME}`,
         ...options,
       });
-      const dest = options?.dest ?? "./static/style.css";
+      const dest = options?.dest ?? DEFAULT_STYLE_DEST;
       await ensureDir(dest.split("/").slice(0, -1).join("/"));
       await Deno.writeTextFile(dest, css);
     },

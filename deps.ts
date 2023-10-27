@@ -17,3 +17,4 @@ export {
 export { ensureDir } from "https://deno.land/std@0.204.0/fs/mod.ts";
 export * as JSONC from "https://deno.land/std@0.204.0/jsonc/mod.ts";
 export { encodeHex } from "https://deno.land/std@0.204.0/encoding/hex.ts";
+export { type Plugin } from "https://deno.land/x/fresh@1.5.2/server.ts";

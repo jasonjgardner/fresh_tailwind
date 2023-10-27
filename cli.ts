@@ -1,17 +1,14 @@
 #!/usr/bin/env -S deno run --allow-sys=osRelease --allow-net=github.com,objects.githubusercontent.com --allow-read=./ --allow-write=./
 import { ensureDir, join, JSONC } from "./deps.ts";
-
-// Download standalone Tailwind CLI from GitHub releases.
-// Get the users OS and architecture.
-// Attempt to download the appropriate binary.
-// Compare it to the checksums.
-
-const TAILWIND_VERSION = "3.3.5";
-const TAILWIND_REPO =
-  `https://github.com/tailwindlabs/tailwindcss/releases/download/v${TAILWIND_VERSION}`;
-
-const DEFAULT_STYLE_SRC = "./src/styles.css";
-const DEFAULT_STYLE_DEST = "./static/styles.css";
+import {
+  DEFAULT_SRC_DIR,
+  DEFAULT_STYLE_DEST,
+  DEFAULT_STYLE_SRC,
+  DEFAULT_TAILWIND_CONFIG,
+  TAILWIND_PREFLIGHT,
+  TAILWIND_REPO,
+  TAILWIND_VERSION,
+} from "./constants.ts";
 
 /**
  * Attempt to download the Tailwind CLI binary from GitHub releases for the current OS and architecture.
@@ -228,8 +225,13 @@ async function readDenoJson(
 export async function addTask(cwd?: string) {
   // Add task to deno.json[c]
   try {
-    const denoConfig = (await readDenoJson(cwd ?? "./", "json")) ??
-      (await readDenoJson(cwd ?? "./", "jsonc"));
+    let isJsonc = false;
+    let denoConfig = await readDenoJson(cwd ?? "./", "json");
+
+    if (!denoConfig) {
+      isJsonc = true;
+      denoConfig = await readDenoJson(cwd ?? "./", "jsonc");
+    }
 
     if (!denoConfig) {
       throw new Error(
@@ -243,15 +245,21 @@ export async function addTask(cwd?: string) {
 
     if (!denoJson.tasks["tailwind:build"]) {
       denoJson.tasks["tailwind:build"] =
-        `./bin/tailwindcss -i ${DEFAULT_STYLE_SRC} -o ${DEFAULT_STYLE_DEST} --config ./tailwind.config.ts --minify`;
+        `./bin/tailwindcss -i ${DEFAULT_STYLE_SRC} -o ${DEFAULT_STYLE_DEST} --config ${DEFAULT_TAILWIND_CONFIG} --minify`;
     }
 
     if (!denoJson.tasks["tailwind:watch"]) {
       denoJson.tasks["tailwind:watch"] =
-        `./bin/tailwindcss -i ${DEFAULT_STYLE_SRC} -o ${DEFAULT_STYLE_DEST} --config ./tailwind.config.ts --watch`;
+        `./bin/tailwindcss -i ${DEFAULT_STYLE_SRC} -o ${DEFAULT_STYLE_DEST} --config ${DEFAULT_TAILWIND_CONFIG} --watch`;
     }
 
     // FIXME: Using JSON.stringify will remove comments from deno.jsonc. The current workaround is to use JSON.stringify to always create a deno.json file
+    if (isJsonc) {
+      console.warn(
+        "deno.jsonc detected. Comments will be removed and deno.json will be created. Copy and paste the new tasks from deno.json to deno.jsonc.",
+      );
+    }
+
     await Deno.writeTextFile(
       denoJsonPath.replace(/c$/i, ""),
       JSON.stringify(denoJson, null, 2),
@@ -270,7 +278,7 @@ export async function addTask(cwd?: string) {
 export async function writeTailwindConfig() {
   // Check for tailwind.config.ts existence
   try {
-    await Deno.readTextFile("./tailwind.config.ts");
+    await Deno.stat(DEFAULT_TAILWIND_CONFIG);
     return;
   } catch (err) {
     if (!(err instanceof Deno.errors.NotFound) && !(err instanceof TypeError)) {
@@ -286,10 +294,10 @@ export async function writeTailwindConfig() {
   ],
 };`;
 
-  await Deno.writeTextFile("./tailwind.config.ts", content);
+  await Deno.writeTextFile(DEFAULT_TAILWIND_CONFIG, content);
 
   try {
-    await Deno.readTextFile(DEFAULT_STYLE_SRC);
+    await Deno.stat(DEFAULT_STYLE_SRC);
     return;
   } catch (err) {
     if (!(err instanceof Deno.errors.NotFound) && !(err instanceof TypeError)) {
@@ -297,11 +305,9 @@ export async function writeTailwindConfig() {
     }
   }
 
-  const styles = `@tailwind base;
-@tailwind components;
-@tailwind utilities;`;
+  const styles = TAILWIND_PREFLIGHT;
 
-  await ensureDir("./src");
+  await ensureDir(DEFAULT_SRC_DIR);
   await Deno.writeTextFile(DEFAULT_STYLE_SRC, styles);
 }
 
@@ -363,12 +369,14 @@ if (import.meta.main) {
       ],
     });
 
-    const { stdout } = await cmd.output();
+    const { stderr, code } = await cmd.output();
 
-    const decoder = new TextDecoder();
-    const text = decoder.decode(stdout);
+    if (code !== 0) {
+      const decoder = new TextDecoder();
+      const text = decoder.decode(stderr);
 
-    console.log(text);
+      console.warn("Tailwind process error: %s", text);
+    }
   } catch (err) {
     if (!(err instanceof Deno.errors.NotFound) && !(err instanceof TypeError)) {
       console.error(err);
