@@ -1,14 +1,17 @@
 #!/usr/bin/env -S deno run --allow-sys=osRelease --allow-net=github.com,objects.githubusercontent.com --allow-read=./ --allow-write=./
-import { ensureDir, join } from "./deps.ts";
+import { ensureDir, join, JSONC } from "./deps.ts";
 
 // Download standalone Tailwind CLI from GitHub releases.
 // Get the users OS and architecture.
 // Attempt to download the appropriate binary.
 // Compare it to the checksums.
 
-const TAILWIND_VERSION = "3.3.3";
+const TAILWIND_VERSION = "3.3.5";
 const TAILWIND_REPO =
   `https://github.com/tailwindlabs/tailwindcss/releases/download/v${TAILWIND_VERSION}`;
+
+const DEFAULT_STYLE_SRC = "./src/styles.css";
+const DEFAULT_STYLE_DEST = "./static/styles.css";
 
 /**
  * Attempt to download the Tailwind CLI binary from GitHub releases for the current OS and architecture.
@@ -192,53 +195,68 @@ async function download(root?: string, dest = "./bin"): Promise<string> {
   return executable;
 }
 
-// FIXME: Add support for .jsonc files
-async function readDenoJson(denoJsonPath: string) {
+/**
+ * Reads and parses deno.json or deno.jsonc whichever found first. Returns both the parsed content
+ * and the path to actual file discovered.
+ */
+async function readDenoJson(
+  resolvedDirectory: string,
+  extension: "json" | "jsonc" = "json",
+) {
   try {
-    const denoJson = JSON.parse(await Deno.readTextFile(denoJsonPath));
-    return denoJson;
+    const denoJsonPath = join(resolvedDirectory, `deno.${extension}`);
+    const contents = await Deno.readTextFile(denoJsonPath);
+    return {
+      denoJson: extension === "json"
+        ? JSON.parse(contents)
+        : JSONC.parse(contents),
+      denoJsonPath,
+    };
   } catch (err) {
-    if (err instanceof Deno.errors.NotFound) {
-      throw new Error(
-        "Could not find deno.json in the specified working directory.",
-      );
+    if (!(err instanceof Deno.errors.NotFound)) {
+      throw err;
     }
 
-    throw err;
+    return null;
   }
 }
 
 /**
  * Add Tailwind CLI commands to Deno tasks.
- * @todo Add support for .jsonc files
- * @param cwd - Current working directory for Deno project.
+ * @param cwd - Current working directory for Deno project. Defaults to `"./"` if undefined.
  */
 export async function addTask(cwd?: string) {
-  const denoJsonPath = join(cwd ?? "./", "deno.json");
-  // Add task to deno.json
+  // Add task to deno.json[c]
   try {
-    const denoJson = await readDenoJson(denoJsonPath);
+    const denoConfig = (await readDenoJson(cwd ?? "./", "json")) ??
+      (await readDenoJson(cwd ?? "./", "jsonc"));
+
+    if (!denoConfig) {
+      throw new Error(
+        "Could not find deno.json or deno.jsonc in the current working directory.",
+      );
+    }
+
+    const { denoJson, denoJsonPath } = denoConfig;
 
     denoJson.tasks.tailwind = "./bin/tailwindcss";
 
     if (!denoJson.tasks["tailwind:build"]) {
       denoJson.tasks["tailwind:build"] =
-        "./bin/tailwindcss -i ./src/style.css -o ./static/style.css --config ./tailwind.config.ts --minify";
+        `./bin/tailwindcss -i ${DEFAULT_STYLE_SRC} -o ${DEFAULT_STYLE_DEST} --config ./tailwind.config.ts --minify`;
     }
 
     if (!denoJson.tasks["tailwind:watch"]) {
       denoJson.tasks["tailwind:watch"] =
-        "./bin/tailwindcss -i ./src/style.css -o ./static/style.css --config ./tailwind.config.ts --watch";
+        `./bin/tailwindcss -i ${DEFAULT_STYLE_SRC} -o ${DEFAULT_STYLE_DEST} --config ./tailwind.config.ts --watch`;
     }
 
-    await Deno.writeTextFile(denoJsonPath, JSON.stringify(denoJson, null, 2));
+    // FIXME: Using JSON.stringify will remove comments from deno.jsonc. The current workaround is to use JSON.stringify to always create a deno.json file
+    await Deno.writeTextFile(
+      denoJsonPath.replace(/c$/i, ""),
+      JSON.stringify(denoJson, null, 2),
+    );
   } catch (err) {
-    if (err instanceof Deno.errors.NotFound) {
-      throw new Error(
-        "Could not find deno.json in the specified working directory.",
-      );
-    }
-
     throw err;
   }
 
@@ -250,6 +268,7 @@ export async function addTask(cwd?: string) {
 }
 
 export async function writeTailwindConfig() {
+  // Check for tailwind.config.ts existence
   try {
     await Deno.readTextFile("./tailwind.config.ts");
     return;
@@ -270,7 +289,7 @@ export async function writeTailwindConfig() {
   await Deno.writeTextFile("./tailwind.config.ts", content);
 
   try {
-    await Deno.readTextFile("./src/styles.css");
+    await Deno.readTextFile(DEFAULT_STYLE_SRC);
     return;
   } catch (err) {
     if (!(err instanceof Deno.errors.NotFound) && !(err instanceof TypeError)) {
@@ -279,29 +298,35 @@ export async function writeTailwindConfig() {
   }
 
   const styles = `@tailwind base;
-  @tailwind components;
-  @tailwind utilities;`;
+@tailwind components;
+@tailwind utilities;`;
 
   await ensureDir("./src");
-  await Deno.writeTextFile("./src/styles.css", styles);
+  await Deno.writeTextFile(DEFAULT_STYLE_SRC, styles);
 }
 
 export default async function init(root?: string, updateTasks = true) {
-  // Check if deno.json has a tasks.tailwind property before attempting to download.
+  // Check if deno.json[c] has a tasks.tailwind property before attempting to download.
   // If it does, skip downloading.
 
-  // TODO: Allow deno.json path to be the one provided in run command
-  const denoJsonPath = join(root ?? "./", "deno.json");
   try {
-    const denoJson = await readDenoJson(denoJsonPath);
+    const config = await readDenoJson(
+      root ?? "./",
+    ) ?? await readDenoJson(root ?? "./", "jsonc");
 
-    if (denoJson.tasks.tailwind) {
+    if (!config) {
+      throw new Error(
+        "Could not find deno.json or deno.jsonc in the current working directory.",
+      );
+    }
+
+    if (config.denoJson.tasks.tailwind) {
       console.log(
         "Tailwind CLI commands have already been added to your Deno tasks. Run %cdeno task tailwind%c... for Tailwind CLI commands.",
         "color:teal;",
         "",
       );
-      return denoJson.tasks.tailwind;
+      return config.denoJson.tasks.tailwind;
     }
   } catch (err) {
     if (!(err instanceof Deno.errors.NotFound) && !(err instanceof TypeError)) {
