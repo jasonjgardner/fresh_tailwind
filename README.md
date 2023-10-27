@@ -3,6 +3,7 @@
 Ready, set, copy/paste:
 
 ```ts
+import { defineConfig } from "$fresh/server.ts";
 import tailwindPlugin from "https://deno.land/x/fresh_tailwind/mod.ts";
 
 export default defineConfig({
@@ -22,7 +23,7 @@ for a pre-configured Tailwind + Fresh environment.
 
 ## Configuration
 
-Defining the following properties is recommended, but none are required:
+The following properties are recommended, but not required:
 
 **`css`** - File path to CSS source, or a CSS string, to process.\
 **`dest`** - Output file path. **Requires** `deno task build` first!\
@@ -33,7 +34,7 @@ See [`./types.ts`](./types.ts#12) for more options.
 # Use Tailwind CLI in Builds
 
 You can alternatively use Tailwind's standalone CLI to compile your CSS. In your
-Fresh project directory:
+Fresh project directory (change `deno.json` to `deno.jsonc` if needed):
 
 ```shell
 deno run -c deno.json https://deno.land/x/fresh_tailwind/main.ts --install
@@ -45,8 +46,8 @@ from GitHub, according to your Deno environment's OS. The binary hash is
 compared to the
 [published list of checksums](https://github.com/tailwindlabs/tailwindcss/releases/download/v3.3.3/sha256sums.txt)
 before it is saved to disk. It will amend Tailwind build tasks to the project's
-`deno.json` file, and will create `tailwind.config.ts` and `src/style.css` files
-if they do not already exist.
+`deno.json` or `deno.jsonc` file, and will create `tailwind.config.ts` and
+`src/style.css` files if they do not already exist.
 
 ## Build Options
 
@@ -64,8 +65,8 @@ Watch project directory to compile Tailwind CSS independently.
 deno task tailwind:watch
 ```
 
-> You may need to update the tasks in `deno.json` to omit the CSS destination
-> from the list of watched directories.
+> You may need to update the tasks in `deno.json` or `deno.jsonc` to omit the
+> CSS destination from the list of watched directories.
 
 **or**
 
@@ -211,8 +212,8 @@ export default function HeroBanner() {
 
 # Heroicons
 
-Extend your import map, or `deno.json` imports property, with the following
-items:
+Extend your import map, or `deno.json` / `deno.jsonc` imports property, with the
+following items:
 
 ```json
 {
