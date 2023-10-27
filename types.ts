@@ -1,11 +1,6 @@
 import type { Plugin } from "$fresh/server.ts";
 import type { AcceptedPlugin, ProcessOptions } from "./deps.ts";
 
-export interface TailwindPlugin extends Plugin {
-  install: () => Promise<Plugin>;
-  build: () => Promise<void>;
-}
-
 /**
  * Fresh Tailwind plugin settings.
  */

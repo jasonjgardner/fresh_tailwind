@@ -1,5 +1,4 @@
 import type { Plugin } from "$fresh/server.ts";
-import { join } from "./deps.ts";
 
 export interface TailwindPluginOptions {
   dest?: string;
