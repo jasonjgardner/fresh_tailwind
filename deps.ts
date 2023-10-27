@@ -12,3 +12,4 @@ export { postcss };
 export { toFileUrl } from "https://deno.land/std@0.204.0/path/to_file_url.ts";
 export { basename, join } from "https://deno.land/std@0.204.0/path/mod.ts";
 export { ensureDir } from "https://deno.land/std@0.204.0/fs/mod.ts";
+export * as JSONC from "https://deno.land/std@0.204.0/jsonc/mod.ts";
