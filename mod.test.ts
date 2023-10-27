@@ -1,10 +1,5 @@
-import {
-  assertEquals,
-  assertNotEquals,
-  assertStringIncludes,
-} from "$std/assert/mod.ts";
+import { assertNotEquals, assertStringIncludes } from "$std/assert/mod.ts";
 import tailwindPlugin from "./mod.ts";
-import type { ResolvedFreshConfig } from "./types.ts";
 
 Deno.test("Test PostCSS/Tailwind with render hook", async function processTailwindTest() {
   const plugin = tailwindPlugin();
