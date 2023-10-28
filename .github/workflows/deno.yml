@@ -31,7 +31,8 @@ jobs:
       - name: Add requirements for tests
         shell: bash
         run: |
-          cd tests
+          mkdir test
+          cd test
           npx tailwind init --ts
           sed -i 's/from "tailwindcss";/from "npm:tailwindcss";' tailwind.config.ts
           rm tailwind.config.ts
