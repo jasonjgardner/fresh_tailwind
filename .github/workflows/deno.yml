@@ -10,13 +10,43 @@ permissions:
   contents: read
 
 jobs:
-  test:
+  setup:
     runs-on: ubuntu-latest
-
     steps:
       - name: Setup repo
         uses: actions/checkout@v3
 
+      - uses: actions/setup-node@v3
+        with:
+          node-version: "19.x"
+      - name: Add requirements for tests
+        shell: bash
+        run: |
+          mkdir test
+          cd test
+          npx tailwind init --ts
+          sed -i 's/from "tailwindcss";/from "npm:tailwindcss";' tailwind.config.ts
+          rm tailwind.config.ts
+          echo '.roboto { font-family: Roboto, sans-serif; }' > test.css
+      - name: Upload test directory
+        uses: actions/upload-artifact@v2
+        with:
+          name: tests
+          path: |
+            test/tailwind.config.ts
+            test/test.css
+          retention-days: 1
+  test:
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+      - name: Setup repo
+        uses: actions/checkout@v3
+      - name: Download test directory
+        uses: actions/download-artifact@v2
+        with:
+          name: tests
+          path: test
       - name: Setup Deno
         # uses: denoland/setup-deno@v1
         uses: denoland/setup-deno@61fe2df320078202e33d7d5ad347e7dcfa0e8f31  # v1.1.2
@@ -27,17 +57,6 @@ jobs:
 
       - name: Run linter
         run: deno lint
-
-      - name: Add requirements for tests
-        shell: bash
-        run: |
-          mkdir test
-          cd test
-          npx tailwind init --ts
-          sed -i 's/from "tailwindcss";/from "npm:tailwindcss";' tailwind.config.ts
-          rm tailwind.config.ts
-          echo '.roboto { font-family: Roboto, sans-serif; }' > test.css
-          cd ..
 
       - name: Run tests
         run: deno test -A
