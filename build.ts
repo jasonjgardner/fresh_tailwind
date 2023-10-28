@@ -1,5 +1,9 @@
 import type { Plugin } from "./deps.ts";
-import { DEFAULT_STYLE_NAME, DEFAULT_TAILWIND_CONFIG } from "./constants.ts";
+import {
+  DEFAULT_STATIC_DIR,
+  DEFAULT_STYLE_NAME,
+  DEFAULT_TAILWIND_CONFIG,
+} from "./constants.ts";
 
 export interface TailwindPluginOptions {
   /**
@@ -27,7 +31,7 @@ export default function tailwindBuildPlugin(options: TailwindPluginOptions = {
     buildStart: async () => {
       // FIXME: Fresh v1.5.2 doesn't support buildStart config yet
       const config = {
-        staticDir: "./static",
+        staticDir: DEFAULT_STATIC_DIR,
         dev: true,
       };
       const tailwindBin = options.binLocation ?? "./bin/tailwindcss";
@@ -35,7 +39,7 @@ export default function tailwindBuildPlugin(options: TailwindPluginOptions = {
       const tailwindCmd = new Deno.Command(tailwindBin, {
         args: [
           "-o",
-          `${config?.staticDir ?? "./static"}/${fileName}`,
+          `${config?.staticDir ?? DEFAULT_STATIC_DIR}/${fileName}`,
           "--config",
           `${Deno.cwd()}/${DEFAULT_TAILWIND_CONFIG}`,
           !config?.dev ? "--minify" : "",

@@ -14,7 +14,12 @@ import {
 } from "./deps.ts";
 import { getConfig } from "./_tailwind.ts";
 import type { ResolvedFreshConfig, TailwindOptions } from "./types.ts";
-import { DEFAULT_STYLE_DEST, DEFAULT_STYLE_NAME } from "./constants.ts";
+import {
+  DEFAULT_STATIC_DIR,
+  DEFAULT_STYLE_DEST,
+  DEFAULT_STYLE_NAME,
+  TAILWIND_PREFLIGHT,
+} from "./constants.ts";
 
 /**
  * The ID of the style element that is injected into the HTML.
@@ -22,22 +27,12 @@ import { DEFAULT_STYLE_DEST, DEFAULT_STYLE_NAME } from "./constants.ts";
 export const STYLE_ELEMENT_ID = "__FRSH_TAILWIND";
 
 /**
- * Process Tailwind CSS using PostCSS.
- * @param options - {@link TailwindOptions}
- * @returns PostCSS result
+ * Process CSS using PostCSS.
  */
-export async function processTailwind(
-  { plugins = [], postcssOptions, css, tailwindContent, configFile, dest }:
-    TailwindOptions,
+export async function processPostCSS(
+  { plugins = [], postcssOptions, css, dest }: TailwindOptions,
 ): Promise<Result> {
-  const config = await getConfig(configFile);
-
   const postcssPlugins: AcceptedPlugin[] = [
-    // @ts-ignore - Tailwind types not setup
-    tailwind({
-      ...config,
-      content: tailwindContent ?? config.content,
-    }),
     ...plugins,
   ];
 
@@ -45,10 +40,7 @@ export async function processTailwind(
   const isFile = css?.startsWith("./") || css?.startsWith("/");
 
   // Read the CSS file if it's a file path, otherwise use the CSS string.
-  // Fallback to default Tailwind CSS.
-  const stylesheet = (isFile && css)
-    ? await Deno.readTextFile(css)
-    : css ?? `@tailwind base;\n@tailwind components;\n@tailwind utilities;`;
+  const stylesheet = (isFile && css) ? await Deno.readTextFile(css) : css ?? "";
 
   // Process the stylesheet using PostCSS and return the new CSS and map.
   const processed = await postcss(postcssPlugins).process(
@@ -61,6 +53,40 @@ export async function processTailwind(
   );
 
   return processed;
+}
+
+/**
+ * Process Tailwind CSS using PostCSS.
+ * @param options - {@link TailwindOptions}
+ * @returns PostCSS result
+ */
+export async function processTailwind(
+  {
+    plugins = [],
+    postcssOptions,
+    css,
+    tailwindContent,
+    configFile,
+    dest,
+    staticDir,
+  }: TailwindOptions,
+): Promise<Result> {
+  const config = await getConfig(configFile);
+  const tailwindPlugins: AcceptedPlugin[] = [
+    tailwind({
+      ...config,
+      content: tailwindContent ?? config.content,
+    }) as AcceptedPlugin,
+    ...plugins,
+  ];
+
+  return processPostCSS({
+    plugins: tailwindPlugins,
+    postcssOptions,
+    css: css ?? TAILWIND_PREFLIGHT,
+    dest,
+    staticDir,
+  });
 }
 
 /**
@@ -78,7 +104,7 @@ async function renderTailwind(
     };
   }
 
-  const staticDir = options.staticDir ?? "./static";
+  const staticDir = options.staticDir ?? DEFAULT_STATIC_DIR;
   const hasDestination = options.dest !== undefined &&
     options.dest.includes(staticDir);
 
@@ -139,6 +165,9 @@ export default function tailwindPlugin(
 ): Plugin {
   return {
     name: "tailwind_plugin",
+    /**
+     * Return an import to the pre-compiled Tailwind CSS file.
+     */
     render(ctx) {
       ctx.render();
       if (!options.dest) {
@@ -147,10 +176,10 @@ export default function tailwindPlugin(
         };
       }
 
-      const src = options.dest?.replace(
-        options.staticDir ?? "./static", // Make asset URL relative to static dir
+      const src = options.dest.replace(
+        options.staticDir ?? DEFAULT_STATIC_DIR, // Make asset URL relative to static dir
         "",
-      ) ?? `./${DEFAULT_STYLE_NAME}`;
+      );
 
       return {
         styles: [{
@@ -160,6 +189,10 @@ export default function tailwindPlugin(
         }],
       };
     },
+    /**
+     * Process Tailwind CSS and inject it into the HTML.
+     * Will not process Tailwind CSS if a destination is provided.
+     */
     async renderAsync(
       ctx: PluginAsyncRenderContext,
     ) {
@@ -198,11 +231,18 @@ export default function tailwindPlugin(
       }
 
       const { css } = await processTailwind({
-        dest: `${
-          config?.build?.outDir ?? config?.staticDir ?? "./static"
-        }/${DEFAULT_STYLE_NAME}`,
+        dest: options.dest ??
+          `${
+            config?.build?.outDir ?? config?.staticDir ?? DEFAULT_STATIC_DIR
+          }/${DEFAULT_STYLE_NAME}`,
         ...options,
       });
+
+      if (css === undefined || css === "") {
+        console.warn("Failed to process Tailwind CSS.");
+        return;
+      }
+
       const dest = options?.dest ?? DEFAULT_STYLE_DEST;
       await ensureDir(dest.split("/").slice(0, -1).join("/"));
       await Deno.writeTextFile(dest, css);
