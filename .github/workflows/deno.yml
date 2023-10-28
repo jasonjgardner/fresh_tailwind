@@ -28,5 +28,15 @@ jobs:
       - name: Run linter
         run: deno lint
 
+      - name: Add requirements for tests
+        shell: bash
+        run: |
+          cd tests
+          npx tailwind init --ts
+          sed -i 's/from "tailwindcss";/from "npm:tailwindcss";' tailwind.config.ts
+          rm tailwind.config.ts
+          echo '.roboto { font-family: Roboto, sans-serif; }' > test.css
+          cd ..
+
       - name: Run tests
         run: deno test -A
