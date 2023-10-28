@@ -1,5 +1,72 @@
-import { assertNotEquals, assertStringIncludes } from "$std/assert/mod.ts";
-import tailwindPlugin from "./mod.ts";
+import {
+  assertEquals,
+  assertNotEquals,
+  assertStringIncludes,
+} from "$std/assert/mod.ts";
+import tailwindPlugin, { processPostCSS, processTailwind } from "./mod.ts";
+import { getConfig } from "./_tailwind.ts";
+import testConfig from "./test/tailwind.config.ts";
+import { TAILWIND_PREFLIGHT, TAILWIND_VERSION } from "./constants.ts";
+
+Deno.test("processPostCSS should return transformed CSS", async () => {
+  const pfm = await import("https://esm.sh/postcss-font-magician");
+  const result = await processPostCSS({
+    css: "./test/test.css",
+    plugins: [
+      pfm.default({
+        variants: {
+          "Roboto": {
+            "300": [],
+            "400": [],
+            "700": [],
+          },
+        },
+        foundries: ["google"],
+      }),
+    ],
+  });
+
+  assertStringIncludes(result.css, "@font-face {");
+});
+
+Deno.test("processTailwind should return default Tailwind CSS", async () => {
+  const result = await processTailwind({
+    css: TAILWIND_PREFLIGHT,
+    tailwindContent: [{
+      raw: '<html><body><div class="bg-red-500">Howdy</div></body></html>',
+      extension: ".html",
+    }],
+  });
+
+  assertStringIncludes(
+    result.css,
+    `/*
+! tailwindcss v3.3.5 | MIT License | https://tailwindcss.com`,
+  );
+  assertStringIncludes(result.css, "--tw-");
+  assertStringIncludes(result.css, ".bg-red-500");
+});
+
+Deno.test("should return default config when no configFile is provided", async () => {
+  const config = await getConfig();
+
+  assertEquals(config, {
+    content: [
+      "./routes/**/*.{tsx,jsx,ts,js}",
+      "./islands/**/*.{tsx,jsx,ts,js}",
+      "./components/**/*.{tsx,jsx,ts,js",
+      "./src/**/*.css",
+    ],
+    theme: { extend: {} },
+    plugins: [],
+  });
+});
+
+Deno.test("should matching config when config is provided", async () => {
+  const config = await getConfig("./test/tailwind.config.ts");
+
+  assertEquals(config, testConfig);
+});
 
 Deno.test("Test PostCSS/Tailwind with render hook", async function processTailwindTest() {
   const plugin = tailwindPlugin();
@@ -18,10 +85,10 @@ Deno.test("Test PostCSS/Tailwind with render hook", async function processTailwi
   }
 
   assertNotEquals(res.styles, []);
-  // assertEquals(res.styles?.length, 1);
+  assertEquals(res.styles?.length, 1);
   // assertEquals(res.styles?.[0].id, STYLE_ELEMENT_ID);
-  // assertNotEquals(res.styles?.[0].cssText, "");
-  // assertStringIncludes(res.styles?.[0].cssText ?? "", ".bg-red-500");
+  assertNotEquals(res.styles?.[0].cssText, "");
+  assertStringIncludes(res.styles?.[0].cssText ?? "", ".bg-red-500");
 });
 
 Deno.test("Test PostCSS/Tailwind with build step", async function buildTailwindTest() {
@@ -37,11 +104,11 @@ Deno.test("Test PostCSS/Tailwind with build step", async function buildTailwindT
 
   await plugin.buildStart!();
 
+  // Ensure that the file was created
   const css = await Deno.readTextFile("./test/style.css");
   assertStringIncludes(
     css,
     `/*
-! tailwindcss v3.3.5`,
+! tailwindcss v${TAILWIND_VERSION} | MIT License | https://tailwindcss.com`,
   );
-  assertStringIncludes(css, "--tw-text-opacity");
 });
