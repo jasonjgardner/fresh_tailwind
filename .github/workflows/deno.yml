@@ -22,11 +22,9 @@ jobs:
       - name: Add requirements for tests
         shell: bash
         run: |
-          mkdir test
-          cd test
+          npm ci
           npx tailwind init --ts
           sed -i 's/from "tailwindcss";/from "npm:tailwindcss";' tailwind.config.ts
-          rm tailwind.config.ts
           echo '.roboto { font-family: Roboto, sans-serif; }' > test.css
       - name: Upload test directory
         uses: actions/upload-artifact@v2
