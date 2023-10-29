@@ -41,16 +41,19 @@ jobs:
     steps:
       - name: Setup repo
         uses: actions/checkout@v3
-      - name: Download test directory
-        uses: actions/download-artifact@v2
-        with:
-          name: tests
-          path: test
       - name: Setup Deno
         # uses: denoland/setup-deno@v1
         uses: denoland/setup-deno@61fe2df320078202e33d7d5ad347e7dcfa0e8f31  # v1.1.2
         with:
           deno-version: v1.x
+      - name: Download test directory
+        uses: actions/download-artifact@v2
+        with:
+          name: tests
+          path: test
+      - name: Format tests
+        run: |
+          deno fmt test/tailwind.config.ts
       - name: Verify formatting
         run: deno fmt --check
 
