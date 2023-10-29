@@ -32,8 +32,8 @@ jobs:
         with:
           name: tests
           path: |
-            test/tailwind.config.ts
-            test/test.css
+            tailwind.config.ts
+            test.css
           retention-days: 1
   test:
     needs: setup
