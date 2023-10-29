@@ -1,1 +1,4 @@
-test/
+bin/
+test/*
+!test/tailwind.config.ts
+!test/test.css

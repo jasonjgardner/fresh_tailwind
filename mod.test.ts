@@ -5,7 +5,7 @@ import {
 } from "$std/assert/mod.ts";
 import tailwindPlugin, { processPostCSS, processTailwind } from "./mod.ts";
 import { getConfig } from "./_tailwind.ts";
-import testConfig from "./test/tailwind.config.ts";
+
 import { TAILWIND_PREFLIGHT, TAILWIND_VERSION } from "./constants.ts";
 
 Deno.test("processPostCSS should return transformed CSS", async () => {
@@ -63,7 +63,8 @@ Deno.test("should return default config when no configFile is provided", async (
 });
 
 Deno.test("should matching config when config is provided", async () => {
-  const config = await getConfig("./test/tailwind.config.ts");
+  const config = await getConfig("./test/_tailwind.config.ts");
+  const testConfig = (await import("./test/_tailwind.config.ts")).default;
 
   assertEquals(config, testConfig);
 });
