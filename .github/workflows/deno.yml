@@ -25,7 +25,7 @@ jobs:
           npm install tailwindcss --save-dev
           npm ci
           npx tailwindcss init --ts
-          sed -i 's/from "tailwindcss";/from "npm:tailwindcss";' tailwind.config.ts
+          sed -i 's/from "tailwindcss";/from "npm:tailwindcss";/g' tailwind.config.ts
           echo '.roboto { font-family: Roboto, sans-serif; }' > test.css
       - name: Upload test directory
         uses: actions/upload-artifact@v2
