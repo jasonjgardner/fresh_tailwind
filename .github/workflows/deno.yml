@@ -27,7 +27,7 @@ jobs:
       - name: Format for Deno
         shell: bash
         run: |
-          sed -i 's/from "tailwindcss";/from "npm:tailwindcss";/g' tailwind.config.ts
+          sed 's/tailwindcss/npm:tailwindcss/' ./tailwind.config.ts
           echo '.roboto { font-family: Roboto, sans-serif; }' > test.css
       - name: Upload test directory
         uses: actions/upload-artifact@v2
