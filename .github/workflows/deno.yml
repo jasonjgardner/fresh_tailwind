@@ -24,10 +24,9 @@ jobs:
           npm install tailwindcss --save-dev
           npm ci
           npx tailwindcss init --ts
-      - name: Format for Deno
+      - name: Add test CSS
         shell: bash
         run: |
-          sed 's/tailwindcss/npm:tailwindcss/' ./tailwind.config.ts
           echo '.roboto { font-family: Roboto, sans-serif; }' > test.css
       - name: Upload test directory
         uses: actions/upload-artifact@v2
@@ -53,9 +52,14 @@ jobs:
         with:
           name: tests
           path: test
-      - name: Format tests
+      - name: Add npm specifier
+        run: |
+          sed 's/tailwindcss/npm:tailwindcss/g' test/tailwind.config.ts > test/_tailwind.config.ts
+          echo '{"imports": {"tailwindcss": "npm:tailwindcss@3.3.5"}}' > import_map.json         
+      - name: Format for Deno
         run: |
           deno fmt test/tailwind.config.ts
+          deno fmt import_map.json
       - name: Verify formatting
         run: deno fmt --check
 
