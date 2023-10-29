@@ -2,7 +2,7 @@ name: Test
 
 on:
   push:
-    branches: ["main"]
+    branches: ["main", "next"]
   pull_request:
     branches: ["main"]
 
@@ -20,11 +20,13 @@ jobs:
         with:
           node-version: "19.x"
       - name: Add requirements for tests
-        shell: bash
         run: |
           npm install tailwindcss --save-dev
           npm ci
           npx tailwindcss init --ts
+      - name: Format for Deno
+        shell: bash
+        run: |
           sed -i 's/from "tailwindcss";/from "npm:tailwindcss";/g' tailwind.config.ts
           echo '.roboto { font-family: Roboto, sans-serif; }' > test.css
       - name: Upload test directory
