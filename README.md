@@ -1,3 +1,5 @@
+[Fresh has its own Tailwind plugin now.](https://deno.com/blog/fresh-1.6)
+
 # Fresh Tailwind CSS Plugin
 
 Ready, set, copy/paste:
